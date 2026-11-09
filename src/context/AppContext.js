@@ -9,6 +9,7 @@ import {
 } from 'react';
 
 import fragments from '../../assets/fragments.json';
+import { CUSTOM_RULES_ENABLED, LIVES_DEFAULT, SECONDS_DEFAULT } from '../core/constants';
 import { loadBundledDictionary } from '../services/dictionaryService';
 import {
   createStorageService,
@@ -27,6 +28,8 @@ export function AppProvider({ children }) {
   const latestSettings = useRef(DEFAULT_SETTINGS);
   const [dictionary, setDictionary] = useState({ status: 'idle', repository: null, error: null });
   const loading = useRef(null);
+  // Result of the last finished run, shown by Game Over. Kept in memory, not in the URL.
+  const [lastRun, setLastRun] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -56,6 +59,11 @@ export function AppProvider({ children }) {
     return loading.current;
   }, []);
 
+  // Start loading the word list as soon as the app opens, whichever route it opens on.
+  useEffect(() => {
+    loadDictionary();
+  }, [loadDictionary]);
+
   // Updates build on the latest value so quick repeated taps are never lost.
   const updateSettings = useCallback(
     async (changes) => {
@@ -67,9 +75,27 @@ export function AppProvider({ children }) {
     [storage],
   );
 
+  // With custom rules off (settings screen hidden), runs use the defaults whatever was saved.
+  const effectiveSettings = useMemo(
+    () =>
+      CUSTOM_RULES_ENABLED
+        ? settings
+        : { ...settings, lives: LIVES_DEFAULT, secondsPerWord: SECONDS_DEFAULT },
+    [settings],
+  );
+
   const value = useMemo(
-    () => ({ settings, updateSettings, storage, dictionary, loadDictionary, fragments }),
-    [settings, updateSettings, storage, dictionary, loadDictionary],
+    () => ({
+      settings: effectiveSettings,
+      updateSettings,
+      storage,
+      dictionary,
+      loadDictionary,
+      fragments,
+      lastRun,
+      setLastRun,
+    }),
+    [effectiveSettings, updateSettings, storage, dictionary, loadDictionary, lastRun],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

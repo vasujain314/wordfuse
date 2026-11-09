@@ -13,7 +13,7 @@ function Stepper({ label, value, min, max, unit, onChange }) {
       <Text style={styles.rowLabel}>{label}</Text>
       <View style={styles.stepper}>
         <IconButton
-          glyph="−"
+          glyph="-"
           accessibilityLabel={`Decrease ${label}`}
           onPress={() => onChange(Math.max(min, value - 1))}
         />
@@ -35,9 +35,9 @@ function Stepper({ label, value, min, max, unit, onChange }) {
 }
 
 const MOTION_OPTIONS = [
-  { value: 'system', label: 'System' },
-  { value: 'on', label: 'On' },
-  { value: 'off', label: 'Off' },
+  { value: 'system', label: 'system' },
+  { value: 'on', label: 'on' },
+  { value: 'off', label: 'off' },
 ];
 
 export function SettingsScreen() {
@@ -47,22 +47,22 @@ export function SettingsScreen() {
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.header}>
-        <IconButton glyph="‹" accessibilityLabel="Back" onPress={() => router.back()} />
+        <IconButton glyph="<" accessibilityLabel="Back" onPress={() => router.back()} />
         <Text style={styles.title} accessibilityRole="header">
-          SETTINGS
+          settings
         </Text>
         <View style={{ width: MIN_TOUCH }} />
       </View>
       <ScrollView contentContainerStyle={styles.content}>
         <Stepper
-          label="Lives"
+          label="lives"
           value={settings.lives}
           min={LIVES_MIN}
           max={LIVES_MAX}
           onChange={(lives) => updateSettings({ lives })}
         />
         <Stepper
-          label="Seconds per word"
+          label="seconds per word"
           value={settings.secondsPerWord}
           min={SECONDS_MIN}
           max={SECONDS_MAX}
@@ -70,18 +70,18 @@ export function SettingsScreen() {
           onChange={(secondsPerWord) => updateSettings({ secondsPerWord })}
         />
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>Haptics</Text>
+          <Text style={styles.rowLabel}>vibrate on wrong word</Text>
           <Switch
-            accessibilityLabel="Haptics"
+            accessibilityLabel="Vibrate on wrong word"
             value={settings.hapticsEnabled}
             onValueChange={(hapticsEnabled) => updateSettings({ hapticsEnabled })}
-            trackColor={{ true: colors.cyan, false: colors.border }}
-            thumbColor={colors.text}
+            trackColor={{ true: colors.ink, false: colors.rule }}
+            thumbColor={colors.paper}
             style={styles.switch}
           />
         </View>
         <View style={styles.column}>
-          <Text style={styles.rowLabel}>Reduce Motion</Text>
+          <Text style={styles.rowLabel}>reduce motion</Text>
           <View style={styles.segment} accessibilityRole="radiogroup">
             {MOTION_OPTIONS.map((option) => {
               const selected = settings.reduceMotion === option.value;
@@ -103,7 +103,7 @@ export function SettingsScreen() {
           </View>
         </View>
         <Text style={styles.note}>
-          Lives and seconds apply from the next run. Each combination keeps its own best score.
+          lives and seconds apply from the next run. each combination keeps its own best score.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -111,54 +111,60 @@ export function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
+  root: { flex: 1, backgroundColor: colors.paper },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
   },
-  title: { color: colors.text, fontSize: 20, fontWeight: '900', letterSpacing: 4 },
-  content: { padding: spacing.md, gap: spacing.md },
+  title: { fontFamily: fonts.bold, color: colors.ink, fontSize: 20 },
+  content: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
     minHeight: 72,
   },
   column: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
-  rowLabel: { color: colors.text, fontSize: 17, fontWeight: '600' },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  rowLabel: { fontFamily: fonts.regular, color: colors.ink, fontSize: 17 },
+  stepper: { flexDirection: 'row', alignItems: 'center' },
   stepValue: {
-    color: colors.cyan,
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bold,
+    color: colors.ink,
     fontSize: 22,
-    fontWeight: '800',
     minWidth: 52,
     textAlign: 'center',
   },
-  unit: { color: colors.textMuted, fontSize: 14 },
+  unit: { fontFamily: fonts.regular, color: colors.faded, fontSize: 14 },
   switch: { minHeight: MIN_TOUCH },
   segment: { flexDirection: 'row', gap: spacing.sm },
   segmentItem: {
     flex: 1,
     minHeight: MIN_TOUCH,
-    borderRadius: 10,
+    borderRadius: 2,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.rule,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  segmentSelected: { borderColor: colors.cyan, backgroundColor: 'rgba(34, 228, 255, 0.12)' },
-  segmentText: { color: colors.textMuted, fontSize: 15, fontWeight: '600' },
-  segmentTextSelected: { color: colors.cyan },
-  note: { color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: spacing.sm },
+  segmentSelected: { borderColor: colors.ink, borderWidth: 1.5 },
+  segmentText: { fontFamily: fonts.regular, color: colors.faded, fontSize: 15 },
+  segmentTextSelected: { fontFamily: fonts.bold, color: colors.ink },
+  note: {
+    fontFamily: fonts.regular,
+    color: colors.faded,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: spacing.lg,
+  },
 });

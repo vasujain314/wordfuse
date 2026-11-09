@@ -16,6 +16,7 @@
  *   timerState: TimerState,
  *   countdown: number | null,
  *   lastResult: import('./validationResult').ValidationResult | null,
+ *   lastMiss: { fragment: string, answer: string | null } | null,
  *   usedWords: readonly string[],
  * }} GameState
  */
@@ -40,6 +41,7 @@ export function createInitialState(config) {
     timerState: 'calm',
     countdown: null,
     lastResult: null,
+    lastMiss: null,
     usedWords: Object.freeze([]),
   });
 }

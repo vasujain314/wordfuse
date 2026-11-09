@@ -12,7 +12,7 @@ export const fixtureFragments = JSON.parse(readFileSync(join(__dirname, 'fragmen
 
 export const fixtureRepository = () => createWordRepository(fixtureWords);
 
-export { seededRandom } from '../../src/core/random';
+export { seededRandom } from './random';
 
 /** Fake monotonic clock plus scheduler that only fires when time is advanced. */
 export function createFakeTime(start = 1000) {

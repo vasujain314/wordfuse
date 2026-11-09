@@ -10,7 +10,7 @@ const BEST_PREFIX = 'wordfuse:best:';
  * @typedef {'system' | 'on' | 'off'} ReduceMotionSetting
  * @typedef {{ lives: number, secondsPerWord: number, hapticsEnabled: boolean,
  *   reduceMotion: ReduceMotionSetting }} Settings
- * @typedef {{ bestScore: number, bestStreak: number }} BestRecord
+ * @typedef {{ bestScore: number }} BestRecord
  */
 
 /** @type {Settings} */
@@ -73,20 +73,16 @@ export function createStorageService(storage = AsyncStorage) {
       const raw = await readJson(storage, BEST_PREFIX + key);
       return {
         bestScore: Number.isFinite(raw?.bestScore) ? raw.bestScore : 0,
-        bestStreak: Number.isFinite(raw?.bestStreak) ? raw.bestStreak : 0,
       };
     },
 
     /**
-     * Records a finished run and returns the updated best plus whether the score is a new best.
+     * Records a finished run and returns the best score plus whether this run set it.
      * @returns {Promise<BestRecord & { isNewBest: boolean }>}
      */
-    async recordRun(key, score, bestStreak) {
+    async recordRun(key, score) {
       const previous = await this.getBest(key);
-      const next = {
-        bestScore: Math.max(previous.bestScore, score),
-        bestStreak: Math.max(previous.bestStreak, bestStreak),
-      };
+      const next = { bestScore: Math.max(previous.bestScore, score) };
       await storage.setItem(BEST_PREFIX + key, JSON.stringify(next));
       return { ...next, isNewBest: score > previous.bestScore };
     },

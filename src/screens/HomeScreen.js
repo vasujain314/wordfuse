@@ -1,10 +1,11 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+// Pressable is only used by the hidden settings link.
+import { /* Pressable, */ StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, IconButton } from '../components/Button';
-import { colors, fonts, spacing } from '../core/theme';
+import { Button } from '../components/Button';
+import { colors, fonts, /* MIN_TOUCH, */ spacing } from '../core/theme';
 import { useApp } from '../context/AppContext';
 import { configKey, createConfig } from '../game/gameConfig';
 
@@ -12,7 +13,7 @@ export function HomeScreen() {
   const router = useRouter();
   const { settings, storage } = useApp();
   const key = configKey(createConfig(settings));
-  const [best, setBest] = useState({ bestScore: 0, bestStreak: 0 });
+  const [best, setBest] = useState({ bestScore: 0 });
 
   useFocusEffect(
     useCallback(() => {
@@ -28,41 +29,55 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.root}>
+      {/* Settings link hidden for now.
       <View style={styles.topBar}>
-        <IconButton
-          glyph="⚙"
+        <Pressable
+          accessibilityRole="button"
           accessibilityLabel="Settings"
           onPress={() => router.push('/settings')}
-        />
+          style={({ pressed }) => [styles.link, pressed && { opacity: 0.5 }]}
+        >
+          <Text style={styles.linkText}>settings</Text>
+        </Pressable>
       </View>
+      */}
       <View style={styles.center}>
         <Text style={styles.title} accessibilityRole="header">
-          WORD{'\n'}FUSE
+          word fuse
         </Text>
         <Text style={styles.tagline}>
-          Type a word containing the letters before the fuse burns out.
+          type a word containing the letters{'\n'}before the fuse burns out.
         </Text>
+        <View style={styles.rule} />
         <View
           style={styles.bestBox}
           accessible
           accessibilityLabel={`Best score ${best.bestScore} with ${settings.lives} lives and ${settings.secondsPerWord} seconds`}
         >
-          <Text style={styles.bestLabel}>BEST</Text>
+          <Text style={styles.bestLabel}>best</Text>
           <Text style={styles.bestValue}>{best.bestScore}</Text>
           <Text style={styles.bestMeta}>
             {settings.lives} {settings.lives === 1 ? 'life' : 'lives'} · {settings.secondsPerWord}s
             per word
           </Text>
         </View>
-        <Button label="PLAY" onPress={() => router.push('/game')} />
+        <Button label="play" icon="play" onPress={() => router.push('/game')} />
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
-  topBar: { flexDirection: 'row', justifyContent: 'flex-end', padding: spacing.md },
+  root: { flex: 1, backgroundColor: colors.paper },
+  // Styles for the hidden settings link.
+  // topBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: spacing.md },
+  // link: { minHeight: MIN_TOUCH, minWidth: MIN_TOUCH, justifyContent: 'center' },
+  // linkText: {
+  //   fontFamily: fonts.regular,
+  //   color: colors.inkSoft,
+  //   fontSize: 16,
+  //   textDecorationLine: 'underline',
+  // },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -70,18 +85,17 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     padding: spacing.lg,
   },
-  title: {
-    color: colors.text,
-    fontSize: 56,
-    fontWeight: '900',
-    letterSpacing: 8,
+  title: { fontFamily: fonts.bold, color: colors.ink, fontSize: 40 },
+  tagline: {
+    fontFamily: fonts.regular,
+    color: colors.inkSoft,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
-    textShadowColor: colors.cyan,
-    textShadowRadius: 18,
   },
-  tagline: { color: colors.textMuted, fontSize: 15, textAlign: 'center', maxWidth: 280 },
+  rule: { width: 120, height: 1, backgroundColor: colors.rule },
   bestBox: { alignItems: 'center' },
-  bestLabel: { color: colors.textMuted, fontSize: 12, letterSpacing: 3, fontWeight: '700' },
-  bestValue: { color: colors.amber, fontFamily: fonts.mono, fontSize: 48, fontWeight: '900' },
-  bestMeta: { color: colors.textMuted, fontSize: 13 },
+  bestLabel: { fontFamily: fonts.regular, color: colors.faded, fontSize: 14 },
+  bestValue: { fontFamily: fonts.bold, color: colors.ink, fontSize: 48 },
+  bestMeta: { fontFamily: fonts.regular, color: colors.faded, fontSize: 13 },
 });

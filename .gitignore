@@ -16,5 +16,7 @@ web-build/
 # Word list source (regenerate assets with npm run build:assets)
 tools/source/
 
-# Skia web runtime, copied from node_modules by postinstall
-public/canvaskit.wasm
+
+# Local EAS build output
+build/
+*.apk

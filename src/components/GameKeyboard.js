@@ -1,57 +1,53 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 
-import { KEY_TAP_MS, KEY_TAP_SCALE } from '../core/constants';
+import { KEY_TAP_SCALE } from '../core/constants';
 import { colors, fonts, MIN_TOUCH } from '../core/theme';
 
 const ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+const PRESSED = { transform: [{ scale: KEY_TAP_SCALE }] };
+const PRESSED_REDUCED = { opacity: 0.6 };
 
+// Keys shrink while held via Pressable's pressed state: no per-key animation objects.
 const Key = memo(function Key({
   value,
   label,
   accessibilityLabel,
   onPress,
   flex = 1,
-  tone,
+  dark,
   reduceMotion,
   disabled,
 }) {
-  const pressed = useSharedValue(0);
-  const style = useAnimatedStyle(() =>
-    reduceMotion
-      ? { opacity: 1 - pressed.value * 0.4 }
-      : { transform: [{ scale: 1 - pressed.value * (1 - KEY_TAP_SCALE) }] },
-  );
-  const handlePressIn = () => {
-    pressed.value = withSequence(
-      withTiming(1, { duration: KEY_TAP_MS / 2 }),
-      withTiming(0, { duration: KEY_TAP_MS / 2 }),
-    );
-  };
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       disabled={disabled}
-      onPressIn={handlePressIn}
       onPress={() => onPress(value)}
       style={[styles.keySlot, { flex }]}
     >
-      <Animated.View style={[styles.key, tone && { backgroundColor: tone }, style]}>
-        <Text style={[styles.keyLabel, label.length > 1 && styles.keyLabelSmall]}>{label}</Text>
-      </Animated.View>
+      {({ pressed }) => (
+        <View
+          style={[
+            styles.key,
+            dark && styles.keyDark,
+            pressed && (reduceMotion ? PRESSED_REDUCED : PRESSED),
+          ]}
+        >
+          <Text
+            style={[styles.keyLabel, dark && styles.keyLabelDark, label.length > 1 && styles.small]}
+          >
+            {label}
+          </Text>
+        </View>
+      )}
     </Pressable>
   );
 });
 
 /**
- * On-screen QWERTY keyboard with Backspace and Submit.
+ * On-screen QWERTY keyboard with delete and enter.
  * @param {{ onLetter: (l: string) => void, onBackspace: () => void, onSubmit: () => void,
  *   reduceMotion: boolean, disabled?: boolean }} props
  */
@@ -74,11 +70,10 @@ export function GameKeyboard({ onLetter, onBackspace, onSubmit, reduceMotion, di
           {r === 1 ? <View style={styles.halfSpacer} /> : null}
           {r === 2 ? (
             <Key
-              label="⌫"
+              label="del"
               accessibilityLabel="Backspace"
               flex={1.6}
               onPress={onBackspace}
-              tone={colors.surfaceRaised}
               reduceMotion={reduceMotion}
               disabled={disabled}
             />
@@ -87,10 +82,10 @@ export function GameKeyboard({ onLetter, onBackspace, onSubmit, reduceMotion, di
       ))}
       <View style={styles.row}>
         <Key
-          label="SUBMIT"
+          label="enter"
           accessibilityLabel="Submit word"
           onPress={onSubmit}
-          tone="rgba(34, 228, 255, 0.25)"
+          dark
           reduceMotion={reduceMotion}
           disabled={disabled}
         />
@@ -106,11 +101,13 @@ const styles = StyleSheet.create({
   keySlot: { minHeight: MIN_TOUCH + 4, padding: 2 },
   key: {
     flex: 1,
-    borderRadius: 8,
-    backgroundColor: colors.surface,
+    borderRadius: 3,
+    backgroundColor: colors.key,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  keyLabel: { color: colors.text, fontFamily: fonts.mono, fontSize: 20, fontWeight: '700' },
-  keyLabelSmall: { fontSize: 16, letterSpacing: 3 },
+  keyDark: { backgroundColor: colors.ink },
+  keyLabel: { fontFamily: fonts.bold, color: colors.ink, fontSize: 20 },
+  keyLabelDark: { color: colors.paper },
+  small: { fontSize: 16, letterSpacing: 2 },
 });

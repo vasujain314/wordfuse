@@ -16,8 +16,3 @@ export const ValidationKind = Object.freeze({
   alreadyUsed: 'alreadyUsed',
   notAWord: 'notAWord',
 });
-
-/** @param {ValidationResult} result */
-export function isValid(result) {
-  return result.kind === ValidationKind.valid;
-}

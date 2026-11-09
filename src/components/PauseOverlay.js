@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing } from '../core/theme';
+import { colors, fonts, spacing } from '../core/theme';
 import { Button } from './Button';
 
-/** Covers the board while paused; shows Resume/Quit or the 3-2-1 countdown. */
+/** Covers the board while paused; shows resume/quit or the 3-2-1 countdown. */
 export function PauseOverlay({ countdown, onResume, onQuit }) {
   return (
     <View style={styles.overlay} accessibilityViewIsModal>
@@ -13,9 +13,9 @@ export function PauseOverlay({ countdown, onResume, onQuit }) {
         </Text>
       ) : (
         <>
-          <Text style={styles.title}>PAUSED</Text>
-          <Button label="RESUME" onPress={onResume} />
-          <Button label="QUIT TO HOME" variant="secondary" onPress={onQuit} />
+          <Text style={styles.title}>paused</Text>
+          <Button label="resume" onPress={onResume} />
+          <Button label="quit to home" variant="secondary" onPress={onQuit} />
         </>
       )}
     </View>
@@ -30,12 +30,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.md,
   },
-  title: {
-    color: colors.text,
-    fontSize: 36,
-    fontWeight: '900',
-    letterSpacing: 6,
-    marginBottom: spacing.md,
-  },
-  countdown: { color: colors.cyan, fontSize: 96, fontWeight: '900' },
+  title: { fontFamily: fonts.bold, color: colors.ink, fontSize: 32, marginBottom: spacing.md },
+  countdown: { fontFamily: fonts.bold, color: colors.ink, fontSize: 96 },
 });

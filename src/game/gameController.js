@@ -33,13 +33,16 @@ export class GameController {
    *   fragmentPicker: { next: (streak: number) => string },
    *   now: () => number,
    *   schedule: (fn: () => void, ms: number) => () => void,
-   * }} deps `now` must be monotonic; `schedule` returns a cancel function.
+   *   random?: () => number,
+   * }} deps `now` must be monotonic; `schedule` returns a cancel function; `random` picks
+   *   the answer shown after a timeout.
    */
-  constructor({ config, repository, fragmentPicker, now, schedule }) {
+  constructor({ config, repository, fragmentPicker, now, schedule, random = Math.random }) {
     this.config = config;
     this.repository = repository;
     this.fragmentPicker = fragmentPicker;
     this.now = now;
+    this.random = random;
     this.schedule = schedule;
     this.state = createInitialState(config);
     this.listeners = new Set();
@@ -123,6 +126,7 @@ export class GameController {
       secondsLeft: this.config.secondsPerWord,
       timerState: 'calm',
       countdown: null,
+      lastMiss: null,
     };
     if (this.pauseRequested) {
       this.pauseRequested = false;
@@ -130,7 +134,6 @@ export class GameController {
       changes.phase = 'paused';
     }
     this.setState(changes);
-    this.emit({ type: GameEventType.timerStateChanged, timerState: 'calm' });
   }
 
   deadline() {
@@ -211,14 +214,21 @@ export class GameController {
     const timerChanged = timerState !== this.state.timerState;
     if (!secondChanged && !timerChanged) return;
     this.setState({ secondsLeft, timerState });
-    if (timerChanged) this.emit({ type: GameEventType.timerStateChanged, timerState });
-    if (secondChanged) this.emit({ type: GameEventType.secondTick, fractionLeft, secondsLeft });
+  }
+
+  /** One word the player could have typed for the current fragment, or null. */
+  findAnswer() {
+    const { fragment, usedWords } = this.state;
+    if (typeof this.repository.findContaining !== 'function') return null;
+    return this.repository.findContaining(fragment, { random: this.random, exclude: usedWords });
   }
 
   handleTimeout() {
     const lives = this.state.lives - 1;
     const gameOver = lives <= 0;
+    const lastMiss = { fragment: this.state.fragment, answer: this.findAnswer() };
     this.setState({
+      lastMiss,
       phase: gameOver ? 'gameOver' : 'resolving',
       lives: Math.max(0, lives),
       streak: 0,
@@ -226,7 +236,6 @@ export class GameController {
       secondsLeft: 0,
       timerState: 'critical',
     });
-    this.emit({ type: GameEventType.timeout });
     this.emit({ type: GameEventType.lifeLost, livesLeft: Math.max(0, lives) });
     if (gameOver) {
       this.cancelScheduled();
@@ -234,6 +243,7 @@ export class GameController {
         type: GameEventType.gameOver,
         score: this.state.score,
         bestStreak: this.state.bestStreak,
+        lastMiss,
       });
       return;
     }

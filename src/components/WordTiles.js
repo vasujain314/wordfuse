@@ -1,124 +1,53 @@
-import { useEffect } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
+import { useEffect, useState } from 'react';
+import { Animated, StyleSheet, Text } from 'react-native';
 
 import { INVALID_SHAKE_MS, SHAKE_DISTANCE } from '../core/constants';
-import { colors, fonts, spacing } from '../core/theme';
-
-const MAX_TILE = 38;
-
-/** Indices of input letters that belong to the first occurrence of the fragment. */
-function fragmentRange(input, fragment) {
-  const start = fragment ? input.indexOf(fragment) : -1;
-  return start < 0 ? null : [start, start + fragment.length];
-}
+import { colors, fonts } from '../core/theme';
 
 /**
- * The player's typed word as monospace tiles. Shakes ×3 with a red border on `shakeKey`
- * changes (a fade only with Reduce Motion).
+ * The typed word on one typewriter line with a cursor. The fragment is underlined.
+ * Shakes ×3 on `shakeKey` changes (no shake with Reduce Motion); `rejected` inks it red.
  */
-export function WordTiles({ input, fragment, shakeKey, reduceMotion }) {
-  const { width } = useWindowDimensions();
-  const offset = useSharedValue(0);
-  const error = useSharedValue(0);
+export function WordTiles({ input, fragment, shakeKey, rejected, reduceMotion }) {
+  const [offset] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
-    if (!shakeKey) return;
-    const step = INVALID_SHAKE_MS / 7;
-    error.value = withSequence(
-      withTiming(1, { duration: reduceMotion ? 120 : 60 }),
-      withTiming(0, { duration: INVALID_SHAKE_MS }),
-    );
-    if (reduceMotion) return;
-    offset.value = withSequence(
-      withTiming(-SHAKE_DISTANCE, { duration: step }),
-      withTiming(SHAKE_DISTANCE, { duration: step }),
-      withTiming(-SHAKE_DISTANCE, { duration: step }),
-      withTiming(SHAKE_DISTANCE, { duration: step }),
-      withTiming(-SHAKE_DISTANCE, { duration: step }),
-      withTiming(SHAKE_DISTANCE, { duration: step }),
-      withTiming(0, { duration: step }),
-    );
-  }, [shakeKey, reduceMotion, offset, error]);
+    if (!shakeKey || reduceMotion) return;
+    const duration = INVALID_SHAKE_MS / 7;
+    const to = (toValue) => Animated.timing(offset, { toValue, duration, useNativeDriver: true });
+    const d = SHAKE_DISTANCE;
+    Animated.sequence([to(-d), to(d), to(-d), to(d), to(-d), to(d), to(0)]).start();
+  }, [shakeKey, reduceMotion, offset]);
 
-  const rowStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: offset.value }],
-    borderColor: error.value > 0.01 ? `rgba(255, 59, 92, ${error.value})` : 'transparent',
-  }));
+  const style = { transform: [{ translateX: offset }] };
 
-  const letters = [...input];
-  const tile = Math.min(
-    MAX_TILE,
-    Math.floor((width - spacing.md * 4) / Math.max(letters.length, 6)),
-  );
-  const range = fragmentRange(input, fragment);
+  const start = fragment ? input.indexOf(fragment) : -1;
+  const before = start >= 0 ? input.slice(0, start) : input;
+  const match = start >= 0 ? fragment : '';
+  const after = start >= 0 ? input.slice(start + fragment.length) : '';
+  const ink = rejected ? styles.rejected : null;
+  const fontSize = input.length > 11 ? 26 : 34;
 
   return (
     <Animated.View
-      style={[styles.row, rowStyle]}
+      style={[styles.row, style]}
       accessible
-      accessibilityLabel={input ? `Your word: ${letters.join(' ')}` : 'No letters typed'}
+      accessibilityLabel={input ? `Your word: ${[...input].join(' ')}` : 'No letters typed'}
     >
-      {letters.length === 0 ? (
-        <Text style={styles.placeholder}>TYPE A WORD</Text>
-      ) : (
-        letters.map((letter, i) => {
-          const inFragment = range && i >= range[0] && i < range[1];
-          return (
-            <View
-              key={`${i}-${letter}`}
-              style={[
-                styles.tile,
-                { width: tile, height: tile * 1.2 },
-                inFragment && styles.tileFragment,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.letter,
-                  { fontSize: tile * 0.6 },
-                  inFragment && styles.letterFragment,
-                ]}
-              >
-                {letter}
-              </Text>
-            </View>
-          );
-        })
-      )}
+      <Text style={[styles.text, { fontSize }, ink]} numberOfLines={1}>
+        {before}
+        {match ? <Text style={styles.match}>{match}</Text> : null}
+        {after}
+        <Text style={styles.cursor}>_</Text>
+      </Text>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 3,
-    minHeight: 60,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 12,
-    borderWidth: 2,
-  },
-  placeholder: { color: colors.textMuted, fontFamily: fonts.mono, fontSize: 16, letterSpacing: 4 },
-  tile: {
-    borderRadius: 6,
-    backgroundColor: colors.surfaceRaised,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tileFragment: {
-    backgroundColor: 'rgba(34, 228, 255, 0.18)',
-    borderWidth: 1,
-    borderColor: colors.cyan,
-  },
-  letter: { color: colors.text, fontFamily: fonts.mono, fontWeight: '700' },
-  letterFragment: { color: colors.cyan },
+  row: { minHeight: 56, alignItems: 'center', justifyContent: 'center' },
+  text: { fontFamily: fonts.bold, color: colors.ink, letterSpacing: 3 },
+  match: { textDecorationLine: 'underline' },
+  cursor: { color: colors.faded },
+  rejected: { color: colors.danger },
 });

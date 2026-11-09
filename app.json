@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "wordfuse",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.vasuapps.wordfuse"
@@ -14,12 +14,10 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#0B1026"
+        "backgroundColor": "#F4F1EA"
       },
       "package": "com.vasuapps.wordfuse",
-      "permissions": [
-        "android.permission.VIBRATE"
-      ],
+      "permissions": ["android.permission.VIBRATE"],
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -34,7 +32,7 @@
         {
           "image": "./assets/images/splash.png",
           "resizeMode": "contain",
-          "backgroundColor": "#0B1026",
+          "backgroundColor": "#F4F1EA",
           "imageWidth": 200
         }
       ],
@@ -52,7 +50,7 @@
       }
     },
     "owner": "vasu_apps",
-    "backgroundColor": "#0B1026",
+    "backgroundColor": "#F4F1EA",
     "web": {
       "bundler": "metro",
       "output": "single"

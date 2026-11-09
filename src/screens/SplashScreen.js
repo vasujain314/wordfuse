@@ -1,68 +1,71 @@
-import { Canvas, useClock } from '@shopify/react-native-skia';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { Easing, useSharedValue, withTiming } from 'react-native-reanimated';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '../components/Button';
-import { FuseTimer } from '../components/FuseTimer';
-import { SPLASH_MIN_MS } from '../core/constants';
-import { colors, spacing } from '../core/theme';
+import { SPLASH_MIN_MS, TITLE_TYPE_MS } from '../core/constants';
+import { colors, fonts, spacing } from '../core/theme';
 import { useApp } from '../context/AppContext';
 import { useReduceMotion } from '../hooks/useReduceMotion';
 
-const FUSE_HEIGHT = 40;
+const TITLE = 'word fuse';
 
-/** Burns a fuse across the logo while the dictionary loads. */
+/** Types the title out while a fuse line burns down and the dictionary loads, then opens Home. */
 export function SplashScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
   const { dictionary, loadDictionary, settings } = useApp();
   const reduceMotion = useReduceMotion(settings.reduceMotion);
+  const [typed, setTyped] = useState(reduceMotion ? TITLE.length : 0);
   const [minElapsed, setMinElapsed] = useState(false);
-  const progress = useSharedValue(1);
-  const clock = useClock();
+  const [progress] = useState(() => new Animated.Value(1));
 
   useEffect(() => {
     loadDictionary();
-    progress.value = withTiming(0, { duration: SPLASH_MIN_MS, easing: Easing.linear });
+    Animated.timing(progress, {
+      toValue: 0,
+      duration: SPLASH_MIN_MS,
+      easing: Easing.linear,
+      useNativeDriver: true,
+    }).start();
     const timer = setTimeout(() => setMinElapsed(true), SPLASH_MIN_MS);
     return () => clearTimeout(timer);
   }, [loadDictionary, progress]);
 
+  useEffect(() => {
+    if (typed >= TITLE.length) return undefined;
+    const timer = setTimeout(() => setTyped((n) => n + 1), TITLE_TYPE_MS);
+    return () => clearTimeout(timer);
+  }, [typed]);
+
+  const fuseStyle = { transform: [{ scaleX: progress }] };
   const ready = dictionary.status === 'ready' && minElapsed;
+
+  // Once the words are loaded, go to Home; no extra tap.
+  useEffect(() => {
+    if (ready) router.replace('/home');
+  }, [ready, router]);
   const failed = dictionary.status === 'error';
-  const fuseWidth = Math.min(width - spacing.xl * 2, 320);
 
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.center}>
-        <Text style={styles.logo} accessibilityRole="header">
-          WORD{'\n'}FUSE
+        <Text style={styles.title} accessibilityRole="header" accessibilityLabel={TITLE}>
+          {TITLE.slice(0, typed)}
+          <Text style={styles.cursor}>_</Text>
         </Text>
-        <Canvas style={{ width: fuseWidth, height: FUSE_HEIGHT }}>
-          <FuseTimer
-            x0={8}
-            x1={fuseWidth - 8}
-            y={FUSE_HEIGHT / 2}
-            progress={progress}
-            clock={clock}
-            reduceMotion={reduceMotion}
-            colorOverride={colors.amber}
-          />
-        </Canvas>
+        <View style={styles.track}>
+          <Animated.View style={[styles.fuse, fuseStyle]} />
+        </View>
         <View style={styles.actions}>
           {failed ? (
             <>
-              <Text style={styles.error}>Could not load the word list.</Text>
-              <Button label="RETRY" onPress={loadDictionary} />
+              <Text style={styles.error}>could not load the word list.</Text>
+              <Button label="retry" onPress={loadDictionary} />
             </>
-          ) : ready ? (
-            <Button label="PLAY" onPress={() => router.replace('/home')} />
           ) : (
             <Text style={styles.loading} accessibilityLiveRegion="polite">
-              Loading words…
+              loading words…
             </Text>
           )}
         </View>
@@ -72,18 +75,13 @@ export function SplashScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
+  root: { flex: 1, backgroundColor: colors.paper },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg },
-  logo: {
-    color: colors.text,
-    fontSize: 56,
-    fontWeight: '900',
-    letterSpacing: 8,
-    textAlign: 'center',
-    textShadowColor: colors.magenta,
-    textShadowRadius: 18,
-  },
+  title: { fontFamily: fonts.bold, color: colors.ink, fontSize: 40 },
+  cursor: { color: colors.faded },
+  track: { width: 220, height: 2, backgroundColor: colors.rule, overflow: 'hidden' },
+  fuse: { height: 2, backgroundColor: colors.ink, transformOrigin: 'left' },
   actions: { minHeight: 120, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
-  loading: { color: colors.textMuted, fontSize: 16 },
-  error: { color: colors.red, fontSize: 16 },
+  loading: { fontFamily: fonts.regular, color: colors.faded, fontSize: 16 },
+  error: { fontFamily: fonts.regular, color: colors.danger, fontSize: 16 },
 });

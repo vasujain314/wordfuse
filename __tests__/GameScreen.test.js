@@ -1,12 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { createInitialState, updateState } from '../src/game/gameState';
-import { GameScreen, tickHapticFor } from '../src/screens/GameScreen';
+import { rejectMessageFor, GameScreen } from '../src/screens/GameScreen';
 import { noopHapticsService } from '../src/services/hapticsService';
 
-// Skia canvases need a native/wasm renderer; the board logic is what this test covers.
-jest.mock('../src/components/GameCanvas', () => ({ GameCanvas: () => null }));
-jest.mock('../src/components/ScoreFire', () => ({ ScoreFire: () => null }));
 jest.mock('react-native-safe-area-context', () => {
   const { View } = require('react-native');
   return {
@@ -82,7 +79,7 @@ describe('GameScreen', () => {
     expect(screen.getByLabelText('7 seconds left')).toBeTruthy();
     expect(screen.getByLabelText('2 of 2 lives left')).toBeTruthy();
     expect(screen.getByLabelText('Score 3')).toBeTruthy();
-    expect(screen.getByLabelText(/^Streak 2/)).toBeTruthy();
+    expect(screen.queryByLabelText(/^Streak/)).toBeNull();
     expect(screen.getByLabelText('Your word: P R O T')).toBeTruthy();
   });
 
@@ -92,11 +89,36 @@ describe('GameScreen', () => {
     await fireEvent.press(screen.getByLabelText('Q'));
     await fireEvent.press(screen.getByLabelText('Backspace'));
     await fireEvent.press(screen.getByLabelText('Submit word'));
-    await fireEvent.press(screen.getByLabelText('Pause'));
     expect(controller.typeLetter).toHaveBeenCalledWith('Q');
     expect(controller.backspace).toHaveBeenCalled();
     expect(controller.submit).toHaveBeenCalled();
-    expect(controller.pause).toHaveBeenCalled();
+    expect(screen.queryByLabelText('Pause')).toBeNull();
+  });
+
+  it('vibrates only for a rejected word and explains why', async () => {
+    const controller = createFakeController({ phase: 'playing', fragment: 'ON' });
+    const haptics = { play: jest.fn(), stop: jest.fn() };
+    await renderScreen(controller, { haptics });
+    await fireEvent.press(screen.getByLabelText('Q'));
+    await fireEvent.press(screen.getByLabelText('Backspace'));
+    await fireEvent.press(screen.getByLabelText('Submit word'));
+    await act(() => controller.emit({ type: 'wordAccepted', word: 'ONE', score: 1, streak: 1 }));
+    await act(() => controller.emit({ type: 'lifeLost', livesLeft: 1 }));
+    expect(haptics.play).not.toHaveBeenCalled();
+    await act(() =>
+      controller.emit({ type: 'wordRejected', result: { kind: 'missingFragment', word: 'CAT' } }),
+    );
+    expect(haptics.play).toHaveBeenCalledTimes(1);
+    expect(haptics.play).toHaveBeenCalledWith('invalidWord');
+    expect(screen.getByText('must contain ON')).toBeTruthy();
+  });
+
+  it('exit returns to home', async () => {
+    const controller = createFakeController({ phase: 'playing', fragment: 'ON' });
+    const onQuit = jest.fn();
+    await renderScreen(controller, { onQuit });
+    await fireEvent.press(screen.getByLabelText('Exit to home'));
+    expect(onQuit).toHaveBeenCalledTimes(1);
   });
 
   it('hides the fragment and shows the pause menu while paused', async () => {
@@ -105,9 +127,9 @@ describe('GameScreen', () => {
     await renderScreen(controller, { onQuit });
     expect(screen.queryByText('ON')).toBeNull();
     expect(screen.getByLabelText('Fragment hidden', { includeHiddenElements: true })).toBeTruthy();
-    await fireEvent.press(screen.getByText('RESUME'));
+    await fireEvent.press(screen.getByText('resume'));
     expect(controller.resume).toHaveBeenCalled();
-    await fireEvent.press(screen.getByText('QUIT TO HOME'));
+    await fireEvent.press(screen.getByText('quit to home'));
     expect(onQuit).toHaveBeenCalled();
   });
 
@@ -130,18 +152,20 @@ describe('GameScreen', () => {
     const controller = createFakeController({ phase: 'playing', fragment: 'ON' });
     const onGameOver = jest.fn();
     await renderScreen(controller, { onGameOver });
-    await act(() => controller.emit({ type: 'gameOver', score: 4, bestStreak: 3 }));
+    const lastMiss = { fragment: 'ON', answer: 'STONE' };
+    await act(() => controller.emit({ type: 'gameOver', score: 4, bestStreak: 3, lastMiss }));
     await act(() => jest.runAllTimers());
-    expect(onGameOver).toHaveBeenCalledWith({ score: 4, bestStreak: 3 });
+    expect(onGameOver).toHaveBeenCalledWith({ score: 4, lastMiss });
     jest.useRealTimers();
   });
 });
 
-describe('tickHapticFor', () => {
-  it('maps the fraction left to timer haptics', async () => {
-    expect(tickHapticFor(0.8)).toBeNull();
-    expect(tickHapticFor(0.45)).toBe('timerTick');
-    expect(tickHapticFor(0.3)).toBe('timerTickStrong');
-    expect(tickHapticFor(0.1)).toBe('heartbeat');
+describe('rejectMessageFor', () => {
+  it('explains each rejection', async () => {
+    expect(rejectMessageFor({ kind: 'missingFragment', word: 'CAT' }, 'ON')).toBe(
+      'must contain ON',
+    );
+    expect(rejectMessageFor({ kind: 'notAWord', word: 'ONX' }, 'ON')).toBe('not in the dictionary');
+    expect(rejectMessageFor({ kind: 'alreadyUsed', word: 'ONE' }, 'ON')).toBe('already used');
   });
 });

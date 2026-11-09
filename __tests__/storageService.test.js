@@ -32,20 +32,19 @@ describe('storageService', () => {
     expect(await createStorageService().loadSettings()).toEqual(DEFAULT_SETTINGS);
   });
 
-  it('records best score and streak per config key', async () => {
+  it('records the best score per config key', async () => {
     const storage = createStorageService();
-    expect(await storage.getBest('L2_T10')).toEqual({ bestScore: 0, bestStreak: 0 });
+    expect(await storage.getBest('L2_T10')).toEqual({ bestScore: 0 });
+    expect(await storage.recordRun('L2_T10', 7)).toEqual({ bestScore: 7, isNewBest: true });
+    expect(await storage.recordRun('L2_T10', 5)).toEqual({ bestScore: 7, isNewBest: false });
+    expect(await storage.getBest('L3_T10')).toEqual({ bestScore: 0 });
+  });
 
-    expect(await storage.recordRun('L2_T10', 7, 4)).toEqual({
-      bestScore: 7,
-      bestStreak: 4,
-      isNewBest: true,
-    });
-    expect(await storage.recordRun('L2_T10', 5, 6)).toEqual({
-      bestScore: 7,
-      bestStreak: 6,
-      isNewBest: false,
-    });
-    expect(await storage.getBest('L3_T10')).toEqual({ bestScore: 0, bestStreak: 0 });
+  it('reads older records that also stored a best streak', async () => {
+    await AsyncStorage.setItem(
+      'wordfuse:best:L2_T10',
+      JSON.stringify({ bestScore: 4, bestStreak: 3 }),
+    );
+    expect(await createStorageService().getBest('L2_T10')).toEqual({ bestScore: 4 });
   });
 });

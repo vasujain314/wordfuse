@@ -1,8 +1,17 @@
 import { DICTIONARY_CHUNK_SIZE } from '../core/constants';
 
 /**
- * @typedef {{ contains: (word: string) => boolean, size: number }} WordRepository
+ * @typedef {{
+ *   contains: (word: string) => boolean,
+ *   findContaining: (fragment: string, options?: FindOptions) => string | null,
+ *   size: number,
+ * }} WordRepository
+ * @typedef {{ random?: () => number, exclude?: readonly string[] }} FindOptions
  */
+
+const ANSWER_MIN_LENGTH = 4;
+const ANSWER_MAX_LENGTH = 8;
+const ANSWER_MAX_MATCHES = 400;
 
 export class DictionaryLoadError extends Error {
   /**
@@ -16,25 +25,154 @@ export class DictionaryLoadError extends Error {
   }
 }
 
+const NEWLINE = 10;
+
+/** Compares text[aStart, aEnd) with text[bStart, bEnd) by UTF-16 code unit, without slicing. */
+function compareRanges(text, aStart, aEnd, bStart, bEnd) {
+  const aLen = aEnd - aStart;
+  const bLen = bEnd - bStart;
+  const len = Math.min(aLen, bLen);
+  for (let i = 0; i < len; i += 1) {
+    const diff = text.charCodeAt(aStart + i) - text.charCodeAt(bStart + i);
+    if (diff !== 0) return diff;
+  }
+  return aLen - bLen;
+}
+
+/** Compares `word` with text[start, end) by UTF-16 code unit, without slicing. */
+function compareWord(word, text, start, end) {
+  const lineLen = end - start;
+  const len = Math.min(word.length, lineLen);
+  for (let i = 0; i < len; i += 1) {
+    const diff = word.charCodeAt(i) - text.charCodeAt(start + i);
+    if (diff !== 0) return diff;
+  }
+  return word.length - lineLen;
+}
+
 /**
- * Wraps a Set of uppercase words.
- * @param {Iterable<string>} words
- * @returns {WordRepository}
+ * Repository over one sorted, newline-separated string. Memory stays close to the size of
+ * the file (one string plus two Int32Arrays) instead of one heap string per word.
  */
-export function createWordRepository(words) {
-  const set = words instanceof Set ? words : new Set(words);
-  return {
-    contains: (word) => set.has(word),
-    get size() {
-      return set.size;
-    },
+function createSortedTextRepository(text, starts, ends) {
+  const count = starts.length;
+
+  /** The whole line around position `at`. */
+  const lineAt = (at) => {
+    const start = text.lastIndexOf('\n', at) + 1;
+    const end = text.indexOf('\n', at);
+    return text.slice(start, end === -1 ? text.length : end);
   };
+
+  return {
+    /**
+     * One dictionary word containing `fragment` (other than the fragment itself and any
+     * excluded word), or null. Starts at a random point so answers vary; prefers words of
+     * 4–8 letters so the answer looks natural.
+     */
+    findContaining(fragment, { random = Math.random, exclude = [] } = {}) {
+      if (!fragment || count === 0) return null;
+      const origin = Math.floor(random() * text.length);
+      let fallback = null;
+      let from = origin;
+      let wrapped = false;
+      for (let found = 0; found < ANSWER_MAX_MATCHES; found += 1) {
+        let at = text.indexOf(fragment, from);
+        if (at === -1 || (wrapped && at >= origin)) {
+          if (wrapped) break;
+          wrapped = true;
+          at = text.indexOf(fragment, 0);
+          if (at === -1 || at >= origin) break;
+        }
+        const word = lineAt(at);
+        if (word !== fragment && !exclude.includes(word)) {
+          if (word.length >= ANSWER_MIN_LENGTH && word.length <= ANSWER_MAX_LENGTH) return word;
+          if (!fallback) fallback = word;
+        }
+        from = at + fragment.length;
+      }
+      return fallback;
+    },
+
+    contains(word) {
+      let lo = 0;
+      let hi = count - 1;
+      while (lo <= hi) {
+        const mid = (lo + hi) >>> 1;
+        const cmp = compareWord(word, text, starts[mid], ends[mid]);
+        if (cmp === 0) return true;
+        if (cmp < 0) hi = mid - 1;
+        else lo = mid + 1;
+      }
+      return false;
+    },
+    size: count,
+  };
+}
+
+/** Normalises arbitrary word lines into sorted, unique, uppercase text. */
+function normalizeText(lines) {
+  const words = [...new Set(lines.map((w) => w.trim().toUpperCase()).filter(Boolean))].sort();
+  return words.join('\n');
 }
 
 const yieldToEventLoop = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 /**
- * Reads the word list text and builds the repository in chunks so the UI stays responsive.
+ * Indexes the line positions of `text`. Returns null if the lines are not strictly sorted,
+ * so the caller can normalise first.
+ * @param {string} text uppercase, '\n'-separated
+ * @param {number} chunkSize lines indexed between yields (0 = never yield)
+ */
+async function indexLines(text, chunkSize) {
+  const starts = [];
+  const ends = [];
+  let lineStart = 0;
+  let sorted = true;
+  for (let i = 0; i <= text.length; i += 1) {
+    if (i === text.length || text.charCodeAt(i) === NEWLINE) {
+      if (i > lineStart) {
+        const n = starts.length;
+        if (n > 0 && compareRanges(text, starts[n - 1], ends[n - 1], lineStart, i) >= 0) {
+          sorted = false;
+          break;
+        }
+        starts.push(lineStart);
+        ends.push(i);
+        if (chunkSize > 0 && starts.length % chunkSize === 0) await yieldToEventLoop();
+      }
+      lineStart = i + 1;
+    }
+  }
+  return sorted ? { starts: Int32Array.from(starts), ends: Int32Array.from(ends) } : null;
+}
+
+/**
+ * Builds a repository from a list of words (any case or order). Used for fixtures.
+ * @param {Iterable<string>} words
+ * @returns {WordRepository}
+ */
+export function createWordRepository(words) {
+  const text = normalizeText([...words]);
+  const starts = [];
+  const ends = [];
+  let lineStart = 0;
+  for (let i = 0; i <= text.length; i += 1) {
+    if (i === text.length || text.charCodeAt(i) === NEWLINE) {
+      if (i > lineStart) {
+        starts.push(lineStart);
+        ends.push(i);
+      }
+      lineStart = i + 1;
+    }
+  }
+  return createSortedTextRepository(text, Int32Array.from(starts), Int32Array.from(ends));
+}
+
+/**
+ * Reads the word list text and indexes it, yielding to the event loop every `chunkSize` lines
+ * so the UI stays responsive. The bundled list is already sorted and uppercase, which is the
+ * fast path; anything else is normalised first.
  * @param {() => Promise<string>} readText
  * @param {number} [chunkSize]
  * @returns {Promise<WordRepository>}
@@ -49,15 +187,11 @@ export async function loadWordRepository(readText, chunkSize = DICTIONARY_CHUNK_
   if (typeof text !== 'string' || text.trim().length === 0) {
     throw new DictionaryLoadError('The word list is empty.');
   }
-  const lines = text.split('\n');
-  const set = new Set();
-  for (let start = 0; start < lines.length; start += chunkSize) {
-    const end = Math.min(lines.length, start + chunkSize);
-    for (let i = start; i < end; i += 1) {
-      const word = lines[i].trim().toUpperCase();
-      if (word.length > 0) set.add(word);
-    }
-    if (end < lines.length) await yieldToEventLoop();
+  if (/[a-z\r \t]/.test(text)) text = normalizeText(text.split('\n'));
+  let index = await indexLines(text, chunkSize);
+  if (!index) {
+    text = normalizeText(text.split('\n'));
+    index = await indexLines(text, 0);
   }
-  return createWordRepository(set);
+  return createSortedTextRepository(text, index.starts, index.ends);
 }

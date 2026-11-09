@@ -1,166 +1,164 @@
+import Feather from '@expo/vector-icons/Feather';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  cancelAnimation,
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { IconButton } from '../components/Button';
-import { BurstMode } from '../components/ParticleBurst';
-import { FlashOverlay } from '../components/FlashOverlay';
-import { GameCanvas } from '../components/GameCanvas';
+// Pause button hidden for now; the game still pauses when backgrounded or on Android Back.
+// import { IconButton } from '../components/Button';
+import { DangerFrame } from '../components/DangerFrame';
+import { Dimmer } from '../components/Dimmer';
+import { FuseBar } from '../components/FuseBar';
 import { GameKeyboard } from '../components/GameKeyboard';
 import { LivesIndicator } from '../components/LivesIndicator';
 import { MilestoneBanner } from '../components/MilestoneBanner';
+import { MissedAnswer } from '../components/MissedAnswer';
 import { PauseOverlay } from '../components/PauseOverlay';
-import { ScoreFire } from '../components/ScoreFire';
-import { StreakMeter } from '../components/StreakMeter';
 import { WordTiles } from '../components/WordTiles';
 import {
   CRITICAL_JITTER_MS,
   CRITICAL_JITTER_PX,
   GAME_OVER_DIM_MS,
   GAME_OVER_NAV_DELAY_MS,
+  CORRECT_FLASH_MS,
   LIFE_LOST_FLASH_MS,
-  MILESTONE_BANNER_MS,
-  TIMER_CRITICAL_FRACTION,
-  TIMER_TICK_MEDIUM_FRACTION,
-  TIMER_WARNING_FRACTION,
-  VALID_FLASH_MS,
+  PLUS_ONE_MS,
+  REJECT_MESSAGE_MS,
 } from '../core/constants';
-import { colors, fonts, spacing, timerColors } from '../core/theme';
+import { colors, fonts, MIN_TOUCH, spacing } from '../core/theme';
 import { GameEventType } from '../game/gameEvents';
+import { ValidationKind } from '../game/validationResult';
 import { useGameController } from '../hooks/useGameController';
+import { useHardwareKeyboard } from '../hooks/useHardwareKeyboard';
 
-const FUSE_MARGIN = 28;
-const SCORE_BOX_WIDTH = 96;
-const SCORE_BOX_HEIGHT = 80;
-
-/** Haptic pattern for a secondTick, or null above the warning threshold. */
-export function tickHapticFor(fractionLeft) {
-  if (fractionLeft < TIMER_CRITICAL_FRACTION) return 'heartbeat';
-  if (fractionLeft < TIMER_TICK_MEDIUM_FRACTION) return 'timerTickStrong';
-  if (fractionLeft < TIMER_WARNING_FRACTION) return 'timerTick';
-  return null;
+/** Short explanation for a rejected word. */
+export function rejectMessageFor(result, fragment) {
+  switch (result.kind) {
+    case ValidationKind.empty:
+      return 'type a word';
+    case ValidationKind.tooShort:
+      return 'too short';
+    case ValidationKind.missingFragment:
+      return `must contain ${fragment}`;
+    case ValidationKind.alreadyUsed:
+      return 'already used';
+    case ValidationKind.notAWord:
+      return 'not in the dictionary';
+    default:
+      return '';
+  }
 }
 
 /**
  * The game board. Renders controller snapshots and turns controller events into
- * animation and haptics.
+ * animation. The only haptic is a buzz when a submitted word is rejected.
  * @param {{
  *   controller: import('../game/gameController').GameController,
  *   haptics: import('../services/hapticsService').HapticsService,
  *   reduceMotion: boolean,
  *   maxLives: number,
  *   onQuit: () => void,
- *   onGameOver: (result: { score: number, bestStreak: number }) => void,
+ *   onGameOver: (result: { score: number,
+ *     lastMiss: { fragment: string, answer: string | null } }) => void,
  * }} props
  */
 export function GameScreen({ controller, haptics, reduceMotion, maxLives, onQuit, onGameOver }) {
   const state = useGameController(controller);
-  const [size, setSize] = useState({ width: 0, height: 0 });
-  const [fuseY, setFuseY] = useState(0);
-  const [tilesCenter, setTilesCenter] = useState({ x: 0, y: 0 });
   const [shakeKey, setShakeKey] = useState(0);
-  const [flareKey, setFlareKey] = useState(0);
+  const [reject, setReject] = useState('');
   const [milestone, setMilestone] = useState({ key: 0, streak: 0 });
 
-  const greenFlash = useRef(null);
-  const whiteFlash = useRef(null);
+  const dangerFrame = useRef(null);
   const dimmer = useRef(null);
 
-  // Fuse progress (1 → 0) animates on the UI thread from roundStartedAt/roundDurationMs.
-  const progress = useSharedValue(1);
-  const burstT = useSharedValue(1);
-  const burstOrigin = useSharedValue({ x: 0, y: 0 });
-  const burstMode = useSharedValue(BurstMode.burst);
-  const burstColor = useSharedValue(colors.green);
-  const plusOne = useSharedValue(0);
-  const jitter = useSharedValue(0);
+  // All animation runs on the native side (useNativeDriver), never on the JS thread.
+  // Fuse progress (1 → 0) is driven from roundStartedAt/roundDurationMs.
+  const [progress] = useState(() => new Animated.Value(1));
+  const [plusOne] = useState(() => new Animated.Value(0));
+  const [jitter] = useState(() => new Animated.Value(0));
 
   const { phase, roundStartedAt, roundDurationMs } = state;
   useEffect(() => {
-    if (phase === 'playing') {
-      const remaining = Math.max(0, roundStartedAt + roundDurationMs - controller.now());
-      progress.value = remaining / roundDurationMs;
-      progress.value = withTiming(0, { duration: remaining, easing: Easing.linear });
-    } else {
-      cancelAnimation(progress);
+    if (phase !== 'playing') {
+      progress.stopAnimation();
+      return undefined;
     }
+    const remaining = Math.max(0, roundStartedAt + roundDurationMs - controller.now());
+    progress.setValue(remaining / roundDurationMs);
+    const burn = Animated.timing(progress, {
+      toValue: 0,
+      duration: remaining,
+      easing: Easing.linear,
+      useNativeDriver: true,
+    });
+    burn.start();
+    return () => burn.stop();
   }, [phase, roundStartedAt, roundDurationMs, controller, progress]);
 
   const critical = phase === 'playing' && state.timerState === 'critical';
   useEffect(() => {
-    if (critical && !reduceMotion) {
-      jitter.value = withRepeat(
-        withSequence(
-          withTiming(CRITICAL_JITTER_PX, { duration: CRITICAL_JITTER_MS }),
-          withTiming(-CRITICAL_JITTER_PX, { duration: CRITICAL_JITTER_MS }),
-        ),
-        -1,
-        true,
-      );
-    } else {
-      cancelAnimation(jitter);
-      jitter.value = 0;
+    if (!critical || reduceMotion) {
+      jitter.setValue(0);
+      return undefined;
     }
+    const shake = (toValue) =>
+      Animated.timing(jitter, { toValue, duration: CRITICAL_JITTER_MS, useNativeDriver: true });
+    const loop = Animated.loop(
+      Animated.sequence([shake(CRITICAL_JITTER_PX), shake(-CRITICAL_JITTER_PX)]),
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+      jitter.setValue(0);
+    };
   }, [critical, reduceMotion, jitter]);
 
-  const latest = useRef({ tilesCenter, onGameOver, reduceMotion });
+  // The rejection note clears itself after a moment.
   useEffect(() => {
-    latest.current = { tilesCenter, onGameOver, reduceMotion };
-  }, [tilesCenter, onGameOver, reduceMotion]);
+    if (!reject) return undefined;
+    const timer = setTimeout(() => setReject(''), REJECT_MESSAGE_MS);
+    return () => clearTimeout(timer);
+  }, [reject, shakeKey]);
+
+  const latest = useRef({ onGameOver });
+  useEffect(() => {
+    latest.current = { onGameOver };
+  }, [onGameOver]);
 
   useEffect(() => {
     let navTimer = null;
-    const burst = (mode, color, durationMs, origin) => {
-      if (latest.current.reduceMotion) return;
-      burstMode.value = mode;
-      burstColor.value = color;
-      if (origin) burstOrigin.value = origin;
-      burstT.value = 0;
-      burstT.value = withTiming(1, { duration: durationMs, easing: Easing.out(Easing.quad) });
-    };
     const unsubscribe = controller.onEvent((event) => {
       switch (event.type) {
         case GameEventType.wordAccepted:
-          haptics.play('validWord');
-          greenFlash.current?.flash(VALID_FLASH_MS);
-          burst(BurstMode.burst, colors.green, VALID_FLASH_MS, latest.current.tilesCenter);
-          plusOne.value = 0;
-          plusOne.value = withTiming(1, { duration: VALID_FLASH_MS });
-          setFlareKey((k) => k + 1);
+          setReject('');
+          dangerFrame.current?.flash(CORRECT_FLASH_MS, 'success');
+          plusOne.setValue(0);
+          Animated.timing(plusOne, {
+            toValue: 1,
+            duration: PLUS_ONE_MS,
+            useNativeDriver: true,
+          }).start();
           break;
         case GameEventType.wordRejected:
           haptics.play('invalidWord');
+          setReject(rejectMessageFor(event.result, controller.getSnapshot().fragment));
           setShakeKey((k) => k + 1);
           break;
         case GameEventType.streakMilestone:
-          haptics.play('streakMilestone');
           setMilestone((m) => ({ key: m.key + 1, streak: event.streak }));
-          burst(BurstMode.shower, colors.magenta, MILESTONE_BANNER_MS);
           break;
-        case GameEventType.secondTick: {
-          const pattern = tickHapticFor(event.fractionLeft);
-          if (pattern) haptics.play(pattern);
-          break;
-        }
         case GameEventType.lifeLost:
-          haptics.play('lifeLost');
-          progress.value = withTiming(0, { duration: 80 });
-          whiteFlash.current?.flash(LIFE_LOST_FLASH_MS);
+          progress.stopAnimation();
+          progress.setValue(0);
+          dangerFrame.current?.flash(LIFE_LOST_FLASH_MS);
           break;
         case GameEventType.gameOver:
-          haptics.play('gameOver');
-          dimmer.current?.dim(0.7, GAME_OVER_DIM_MS);
+          dimmer.current?.dim(0.85, GAME_OVER_DIM_MS);
           navTimer = setTimeout(
-            () => latest.current.onGameOver({ score: event.score, bestStreak: event.bestStreak }),
+            () =>
+              latest.current.onGameOver({
+                score: event.score,
+                lastMiss: event.lastMiss,
+              }),
             GAME_OVER_NAV_DELAY_MS,
           );
           break;
@@ -173,108 +171,115 @@ export function GameScreen({ controller, haptics, reduceMotion, maxLives, onQuit
       if (navTimer) clearTimeout(navTimer);
       haptics.stop();
     };
-  }, [controller, haptics, progress, burstT, burstOrigin, burstMode, burstColor, plusOne]);
+  }, [controller, haptics, progress, plusOne]);
 
   const onLetter = useCallback(
     (letter) => {
-      haptics.play('keyTap');
+      setReject('');
       controller.typeLetter(letter);
     },
-    [controller, haptics],
+    [controller],
   );
   const onBackspace = useCallback(() => {
-    haptics.play('keyTap');
+    setReject('');
     controller.backspace();
-  }, [controller, haptics]);
-  const onSubmit = useCallback(() => {
-    haptics.play('submit');
-    controller.submit();
-  }, [controller, haptics]);
+  }, [controller]);
+  const onSubmit = useCallback(() => controller.submit(), [controller]);
+  useHardwareKeyboard({ onLetter, onBackspace, onSubmit });
 
-  const fragmentStyle = useAnimatedStyle(() => ({ transform: [{ translateX: jitter.value }] }));
-  const plusOneStyle = useAnimatedStyle(() => ({
-    opacity: plusOne.value > 0 && plusOne.value < 1 ? 1 - plusOne.value : 0,
-    transform: [{ translateY: reduceMotion ? 0 : -24 * plusOne.value }],
-  }));
+  const fragmentStyle = { transform: [{ translateX: jitter }] };
+  const plusOneStyle = {
+    opacity: plusOne.interpolate({ inputRange: [0, 0.01, 1], outputRange: [0, 1, 0] }),
+    transform: [
+      {
+        translateY: reduceMotion
+          ? 0
+          : plusOne.interpolate({ inputRange: [0, 1], outputRange: [0, -16] }),
+      },
+    ],
+  };
 
   const paused = phase === 'paused';
   const showFragment = phase !== 'paused' && phase !== 'ready';
-  const fuse =
-    size.width > 0 && fuseY > 0
-      ? { x0: FUSE_MARGIN, x1: size.width - FUSE_MARGIN, y: fuseY }
-      : null;
-  const secondsColor = timerColors[state.timerState];
+  const seconds = String(Math.max(0, state.secondsLeft)).padStart(2, '0');
+  // After a timeout, show one word that would have worked until the next fragment appears.
+  const missed = phase === 'resolving' || phase === 'gameOver' ? state.lastMiss : null;
 
   return (
-    <View
-      style={styles.root}
-      onLayout={(e) =>
-        setSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })
-      }
-    >
+    <View style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.header}>
-          <LivesIndicator lives={state.lives} maxLives={maxLives} />
+          <View style={styles.side}>
+            <LivesIndicator lives={state.lives} maxLives={maxLives} />
+          </View>
           <View
             style={styles.scoreBox}
             accessible
             accessibilityRole="text"
             accessibilityLabel={`Score ${state.score}`}
           >
-            <ScoreFire
-              score={state.score}
-              flareKey={flareKey}
-              reduceMotion={reduceMotion}
-              width={SCORE_BOX_WIDTH}
-              height={SCORE_BOX_HEIGHT}
-            />
             <Text style={styles.score}>{state.score}</Text>
             <Animated.Text style={[styles.plusOne, plusOneStyle]}>+1</Animated.Text>
           </View>
-          <StreakMeter streak={state.streak} />
-          <IconButton glyph="II" accessibilityLabel="Pause" onPress={() => controller.pause()} />
+          <View style={[styles.side, styles.sideEnd]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Exit to home"
+              onPress={onQuit}
+              style={({ pressed }) => [styles.exit, pressed && styles.exitPressed]}
+            >
+              <Feather name="log-out" size={22} color={colors.inkSoft} />
+            </Pressable>
+          </View>
+          {/* Pause button hidden for now.
+          <IconButton glyph="||" accessibilityLabel="Pause" onPress={() => controller.pause()} />
+          */}
         </View>
 
-        <View style={styles.fragmentArea}>
+        <View style={styles.page}>
           <Animated.Text
-            style={[styles.fragment, fragmentStyle]}
+            style={[styles.fragment, critical && styles.danger, fragmentStyle]}
             accessibilityRole="header"
             accessibilityLabel={
               showFragment ? `Fragment ${[...state.fragment].join(' ')}` : 'Fragment hidden'
             }
           >
-            {showFragment ? state.fragment : '• •'}
+            {showFragment ? state.fragment : '··'}
           </Animated.Text>
+
+          <View style={styles.fuseRow}>
+            <View style={styles.fuse}>
+              <FuseBar progress={progress} danger={critical} />
+            </View>
+            <Text
+              style={[styles.seconds, critical && styles.danger]}
+              accessibilityLabel={`${state.secondsLeft} seconds left`}
+              accessibilityLiveRegion={state.secondsLeft <= 3 ? 'polite' : 'none'}
+            >
+              {seconds}
+            </Text>
+          </View>
+
+          <View style={styles.wordArea}>
+            {missed ? (
+              <MissedAnswer fragment={missed.fragment} answer={missed.answer} />
+            ) : (
+              <>
+                <WordTiles
+                  input={state.input}
+                  fragment={state.fragment}
+                  shakeKey={shakeKey}
+                  rejected={Boolean(reject)}
+                  reduceMotion={reduceMotion}
+                />
+                <Text style={styles.reject} accessibilityLiveRegion="polite">
+                  {reject}
+                </Text>
+              </>
+            )}
+          </View>
         </View>
 
-        <View
-          style={styles.fuseSlot}
-          onLayout={(e) => setFuseY(e.nativeEvent.layout.y + e.nativeEvent.layout.height / 2)}
-        />
-        <Text
-          style={[styles.seconds, { color: secondsColor }]}
-          accessibilityLabel={`${state.secondsLeft} seconds left`}
-          accessibilityLiveRegion={state.secondsLeft <= 3 ? 'polite' : 'none'}
-        >
-          {state.secondsLeft}s
-        </Text>
-
-        <View
-          style={styles.tilesArea}
-          onLayout={(e) => {
-            const { x, y, width, height } = e.nativeEvent.layout;
-            setTilesCenter({ x: x + width / 2, y: y + height / 2 });
-          }}
-        >
-          <WordTiles
-            input={state.input}
-            fragment={state.fragment}
-            shakeKey={shakeKey}
-            reduceMotion={reduceMotion}
-          />
-        </View>
-
-        <View style={styles.spacer} />
         <GameKeyboard
           onLetter={onLetter}
           onBackspace={onBackspace}
@@ -284,22 +289,9 @@ export function GameScreen({ controller, haptics, reduceMotion, maxLives, onQuit
         />
       </SafeAreaView>
 
-      <GameCanvas
-        width={size.width}
-        height={size.height}
-        fuse={fuse}
-        progress={progress}
-        effects={{ burstT, burstOrigin, burstMode, burstColor }}
-        reduceMotion={reduceMotion}
-      />
-      <FlashOverlay ref={greenFlash} color={colors.green} peak={0.22} reduceMotion={reduceMotion} />
-      <FlashOverlay ref={whiteFlash} color={colors.white} peak={0.5} reduceMotion={reduceMotion} />
-      <MilestoneBanner
-        streak={milestone.streak}
-        triggerKey={milestone.key}
-        reduceMotion={reduceMotion}
-      />
-      <FlashOverlay ref={dimmer} color={colors.background} peak={0.7} reduceMotion={reduceMotion} />
+      <DangerFrame ref={dangerFrame} active={critical} reduceMotion={reduceMotion} />
+      <MilestoneBanner streak={milestone.streak} triggerKey={milestone.key} />
+      <Dimmer ref={dimmer} color={colors.paper} />
       {paused ? (
         <PauseOverlay
           countdown={state.countdown}
@@ -312,42 +304,60 @@ export function GameScreen({ controller, haptics, reduceMotion, maxLives, onQuit
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
-  safe: { flex: 1 },
+  root: { flex: 1, backgroundColor: colors.paper },
+  // On wide screens (desktop web) keep the board phone-sized and centred.
+  safe: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
   },
-  scoreBox: {
-    width: SCORE_BOX_WIDTH,
-    height: SCORE_BOX_HEIGHT,
-    alignItems: 'center',
+  side: { flex: 1 },
+  sideEnd: { alignItems: 'flex-end' },
+  exit: {
+    minHeight: MIN_TOUCH,
+    minWidth: MIN_TOUCH,
+    alignItems: 'flex-end',
     justifyContent: 'center',
   },
-  score: { color: colors.text, fontFamily: fonts.mono, fontSize: 40, fontWeight: '900' },
+  exitPressed: { opacity: 0.4 },
+  scoreBox: { minWidth: 80, alignItems: 'center', justifyContent: 'center' },
+  score: { fontFamily: fonts.bold, color: colors.ink, fontSize: 36 },
   plusOne: {
     position: 'absolute',
-    right: 8,
-    top: 10,
-    color: colors.green,
-    fontSize: 20,
-    fontWeight: '900',
+    right: 0,
+    top: 0,
+    fontFamily: fonts.bold,
+    color: colors.inkSoft,
+    fontSize: 16,
   },
-  fragmentArea: { alignItems: 'center', justifyContent: 'center', marginTop: spacing.md },
+  page: { flex: 1, paddingHorizontal: spacing.lg, justifyContent: 'center' },
   fragment: {
-    color: colors.text,
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bold,
+    color: colors.ink,
     fontSize: 72,
-    fontWeight: '900',
-    letterSpacing: 10,
-    textShadowColor: colors.cyan,
-    textShadowRadius: 16,
+    letterSpacing: 12,
+    textAlign: 'center',
   },
-  fuseSlot: { height: 40, marginTop: spacing.sm },
-  seconds: { textAlign: 'center', fontFamily: fonts.mono, fontSize: 22, fontWeight: '800' },
-  tilesArea: { marginTop: spacing.lg, paddingHorizontal: spacing.md },
-  spacer: { flex: 1 },
+  danger: { color: colors.danger },
+  fuseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  fuse: { flex: 1 },
+  seconds: { fontFamily: fonts.bold, color: colors.ink, fontSize: 18, minWidth: 28 },
+  wordArea: { marginTop: spacing.xl, alignItems: 'center' },
+  reject: {
+    fontFamily: fonts.regular,
+    color: colors.danger,
+    fontSize: 14,
+    minHeight: 20,
+    marginTop: spacing.xs,
+  },
 });

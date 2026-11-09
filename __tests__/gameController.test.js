@@ -2,7 +2,7 @@ import { TIMEOUT_PAUSE_MS, VALID_WORD_PAUSE_MS } from '../src/core/constants';
 import { createConfig } from '../src/game/gameConfig';
 import { GameController } from '../src/game/gameController';
 import { ValidationKind } from '../src/game/validationResult';
-import { createFakeTime, fixtureRepository, sequencePicker } from './fixtures/fakes';
+import { createFakeTime, fixtureRepository, seededRandom, sequencePicker } from './fixtures/fakes';
 
 function setup({ lives = 2, seconds = 10, fragments = ['ON', 'AT', 'ST', 'ON'] } = {}) {
   const time = createFakeTime();
@@ -12,6 +12,7 @@ function setup({ lives = 2, seconds = 10, fragments = ['ON', 'AT', 'ST', 'ON'] }
     fragmentPicker: sequencePicker(fragments),
     now: time.now,
     schedule: time.schedule,
+    random: seededRandom(7),
   });
   const events = [];
   controller.onEvent((e) => events.push(e));
@@ -90,11 +91,29 @@ describe('GameController', () => {
     expect(state().streak).toBe(1);
     tick(10000);
     expect(state()).toMatchObject({ phase: 'resolving', lives: 2, streak: 0, score: 1 });
-    expect(events.map((e) => e.type)).toEqual(expect.arrayContaining(['timeout', 'lifeLost']));
+    expect(events).toContainEqual({ type: 'lifeLost', livesLeft: 2 });
     time.advance(TIMEOUT_PAUSE_MS - 1);
     expect(state().phase).toBe('resolving');
     time.advance(1);
     expect(state()).toMatchObject({ phase: 'playing', fragment: 'ST' });
+  });
+
+  it('on timeout shows one unused answer containing the fragment, cleared next round', () => {
+    const { controller, type, state, tick, time } = setup({
+      lives: 3,
+      fragments: ['ON', 'ON', 'AT'],
+    });
+    type('PROTON');
+    controller.submit();
+    time.advance(VALID_WORD_PAUSE_MS);
+    tick(10000);
+    const { lastMiss } = state();
+    expect(lastMiss.fragment).toBe('ON');
+    expect(lastMiss.answer).toContain('ON');
+    expect(lastMiss.answer).not.toBe('ON');
+    expect(lastMiss.answer).not.toBe('PROTON');
+    time.advance(TIMEOUT_PAUSE_MS);
+    expect(state()).toMatchObject({ phase: 'playing', fragment: 'AT', lastMiss: null });
   });
 
   it('a timeout never changes the score', () => {
@@ -132,7 +151,12 @@ describe('GameController', () => {
     const { controller, state, tick, events, time } = setup({ lives: 1 });
     tick(10000);
     expect(state()).toMatchObject({ phase: 'gameOver', lives: 0 });
-    expect(events.at(-1)).toEqual({ type: 'gameOver', score: 0, bestStreak: 0 });
+    expect(events.at(-1)).toEqual({
+      type: 'gameOver',
+      score: 0,
+      bestStreak: 0,
+      lastMiss: { fragment: 'ON', answer: expect.stringContaining('ON') },
+    });
     expect(time.pending()).toBe(0);
     controller.typeLetter('A');
     expect(state().input).toBe('');
@@ -196,14 +220,14 @@ describe('GameController', () => {
     expect(controller.getSnapshot().secondsLeft).toBe(9);
   });
 
-  it('emits secondTick and timer state changes', () => {
-    const { events, tick } = setup();
+  it('moves the timer state from calm to warning to critical', () => {
+    const { state, tick } = setup();
     tick(1000);
-    expect(events.at(-1)).toEqual({ type: 'secondTick', fractionLeft: 0.9, secondsLeft: 9 });
+    expect(state()).toMatchObject({ secondsLeft: 9, timerState: 'calm' });
     tick(4000);
-    expect(events).toContainEqual({ type: 'timerStateChanged', timerState: 'warning' });
+    expect(state()).toMatchObject({ secondsLeft: 5, timerState: 'warning' });
     tick(4000);
-    expect(events).toContainEqual({ type: 'timerStateChanged', timerState: 'critical' });
+    expect(state()).toMatchObject({ secondsLeft: 1, timerState: 'critical' });
   });
 
   it('emits a streak milestone at 5', () => {

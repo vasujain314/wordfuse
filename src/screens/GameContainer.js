@@ -1,7 +1,9 @@
-import { Redirect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { BackHandler } from 'react-native';
+import { BackHandler, StyleSheet, Text, View } from 'react-native';
 
+import { Button } from '../components/Button';
+import { colors, fonts, spacing } from '../core/theme';
 import { useApp } from '../context/AppContext';
 import { configKey, createConfig } from '../game/gameConfig';
 import { createFragmentPicker } from '../game/fragmentPicker';
@@ -17,21 +19,44 @@ const schedule = (fn, ms) => {
   return () => clearTimeout(handle);
 };
 
-/** Builds a controller from the settings at run start and wires it to navigation and storage. */
+/**
+ * The /game route. Waits for the word list (e.g. when /game is opened or refreshed directly
+ * on web), then starts a run.
+ */
 export function GameContainer() {
+  const { dictionary, loadDictionary } = useApp();
+  if (dictionary.status === 'ready') return <GameSession repository={dictionary.repository} />;
+  const failed = dictionary.status === 'error';
+  return (
+    <View style={styles.loading}>
+      {failed ? (
+        <>
+          <Text style={styles.error}>could not load the word list.</Text>
+          <Button label="retry" onPress={loadDictionary} />
+        </>
+      ) : (
+        <Text style={styles.loadingText} accessibilityLiveRegion="polite">
+          loading words…
+        </Text>
+      )}
+    </View>
+  );
+}
+
+/** Builds a controller from the settings at run start and wires it to navigation and storage. */
+function GameSession({ repository }) {
   const router = useRouter();
-  const { settings, dictionary, fragments, storage } = useApp();
+  const { settings, fragments, storage, setLastRun } = useApp();
   const reduceMotion = useReduceMotion(settings.reduceMotion);
 
   // Settings are read once, when the run starts.
   const [run] = useState(() => {
-    if (!dictionary.repository) return null;
     const config = createConfig(settings);
     return {
       config,
       controller: new GameController({
         config,
-        repository: dictionary.repository,
+        repository,
         fragmentPicker: createFragmentPicker(fragments, Math.random),
         now: monotonicNow,
         schedule,
@@ -41,17 +66,15 @@ export function GameContainer() {
   });
 
   useEffect(() => {
-    if (!run) return undefined;
     run.controller.startRun();
     return () => run.controller.dispose();
   }, [run]);
 
-  const pause = useCallback(() => run?.controller.pause(), [run]);
+  const pause = useCallback(() => run.controller.pause(), [run]);
   useAppPause(pause);
 
   // Android back: pause first, leave from the pause menu.
   useEffect(() => {
-    if (!run) return undefined;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       const { phase } = run.controller.getSnapshot();
       if (phase === 'playing' || phase === 'resolving') {
@@ -63,25 +86,22 @@ export function GameContainer() {
     return () => sub.remove();
   }, [run]);
 
-  const onQuit = useCallback(() => router.back(), [router]);
+  // Home may not be in the history (e.g. /game opened directly on web), so go there explicitly.
+  const onQuit = useCallback(() => router.dismissTo('/home'), [router]);
   const onGameOver = useCallback(
-    async ({ score, bestStreak }) => {
-      const key = configKey(run.config);
-      const best = await storage.recordRun(key, score, bestStreak).catch(() => null);
-      router.replace({
-        pathname: '/game-over',
-        params: {
-          score: String(score),
-          bestStreak: String(bestStreak),
-          bestScore: String(best?.bestScore ?? score),
-          newBest: best?.isNewBest ? '1' : '0',
-        },
+    async ({ score, lastMiss }) => {
+      const best = await storage.recordRun(configKey(run.config), score).catch(() => null);
+      // The result goes to Game Over through app state, so the URL stays /game-over.
+      setLastRun({
+        score,
+        bestScore: best?.bestScore ?? score,
+        isNewBest: Boolean(best?.isNewBest),
+        lastMiss: lastMiss ?? null,
       });
+      router.replace('/game-over');
     },
-    [run, storage, router],
+    [run, storage, router, setLastRun],
   );
-
-  if (!run) return <Redirect href="/" />;
 
   return (
     <GameScreen
@@ -94,3 +114,15 @@ export function GameContainer() {
     />
   );
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    backgroundColor: colors.paper,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  loadingText: { fontFamily: fonts.regular, color: colors.faded, fontSize: 16 },
+  error: { fontFamily: fonts.regular, color: colors.danger, fontSize: 16 },
+});

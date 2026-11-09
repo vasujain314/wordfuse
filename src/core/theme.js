@@ -1,31 +1,20 @@
-import { Platform } from 'react-native';
+// Typewriter-on-paper theme: one ink colour, one danger colour, one typeface.
 
 export const colors = Object.freeze({
-  background: '#0B1026',
-  surface: '#141B3A',
-  surfaceRaised: '#1D2550',
-  border: '#2A3366',
-  text: '#E8ECFF',
-  textMuted: '#8C95C7',
-  cyan: '#22E4FF',
-  amber: '#FFB020',
-  red: '#FF3B5C',
-  magenta: '#FF3EC8',
-  green: '#3DFF8A',
-  white: '#FFFFFF',
-  fireCore: '#FFE27A',
-  fireOuter: '#FF6A1A',
-  overlay: 'rgba(5, 8, 20, 0.85)',
-});
-
-export const timerColors = Object.freeze({
-  calm: colors.cyan,
-  warning: colors.amber,
-  critical: colors.red,
+  paper: '#F4F1EA',
+  key: '#E8E3D7',
+  success: '#2F7D32',
+  ink: '#1D1C1A',
+  inkSoft: '#57534B',
+  faded: '#9A958A',
+  rule: '#D6D0C2',
+  danger: '#B3261E',
+  overlay: 'rgba(244, 241, 234, 0.96)',
 });
 
 export const fonts = Object.freeze({
-  mono: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
+  regular: 'CourierPrime_400Regular',
+  bold: 'CourierPrime_700Bold',
 });
 
 export const spacing = Object.freeze({ xs: 4, sm: 8, md: 16, lg: 24, xl: 32 });
