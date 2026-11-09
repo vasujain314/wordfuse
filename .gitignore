@@ -20,3 +20,6 @@ tools/source/
 # Local EAS build output
 build/
 *.apk
+
+# Local env (Supabase keys for multiplayer)
+.env*.local

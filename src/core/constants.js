@@ -60,3 +60,24 @@ export const CRITICAL_JITTER_MS = 50;
 export const DANGER_PULSE_MS = 500;
 export const SPLASH_MIN_MS = 1600;
 export const TITLE_TYPE_MS = 90;
+
+// Multiplayer
+export const MP_PROTOCOL_VERSION = 1;
+export const MP_MIN_PLAYERS = 2;
+export const MP_MAX_PLAYERS = 8;
+export const MP_ROOM_CODE_LENGTH = 4;
+export const MP_NAME_MAX_LENGTH = 12;
+export const MP_ACCEPT_PAUSE_MS = 900; // long enough for everyone to read the accepted word
+export const MP_STREAK_PER_ROUND = 2; // difficulty: each full round counts as 2 streak steps
+export const MP_SUBMIT_GRACE_MS = 500; // host accepts submits this late (network delay)
+export const MP_HEARTBEAT_MS = 1500; // host re-broadcasts the room state this often
+export const MP_HOST_SILENCE_MS = 5000; // no state for this long = host considered gone
+export const MP_CLAIM_STAGGER_MS = 1200; // successor rank r claims hosting after r × this
+export const MP_TAKEOVER_MIN_REMAINING_MS = 3000; // a takeover never leaves less than this
+export const MP_SYNC_DRIFT_MS = 250; // only correct the local deadline beyond this drift
+export const MP_TYPING_THROTTLE_MS = 150;
+export const MP_WATCHDOG_MS = 500; // how often members check the host is still there
+export const MP_ROOM_PROBE_MS = 4000; // how long to wait for a room to answer
+export const MP_CODE_CHECK_MS = 1000; // how long a new code is checked for an existing room
+export const MP_RECENT_FRAGMENTS = 10;
+export const MP_ABSENT_LEAVE_MS = 10000; // a player missing from presence this long has left (covers a page reload)

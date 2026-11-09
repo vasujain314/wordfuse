@@ -24,6 +24,7 @@ module.exports = defineConfig([
         it: 'readonly',
         expect: 'readonly',
         beforeEach: 'readonly',
+        beforeAll: 'readonly',
         afterEach: 'readonly',
         __dirname: 'readonly',
         require: 'readonly',

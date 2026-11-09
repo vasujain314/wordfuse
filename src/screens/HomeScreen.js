@@ -61,13 +61,17 @@ export function HomeScreen() {
             per word
           </Text>
         </View>
-        <Button label="play" icon="play" onPress={() => router.push('/game')} />
+        <View style={styles.buttons}>
+          <Button label="play" icon="play" onPress={() => router.push('/game')} />
+          <Button label="multiplayer" icon="users" onPress={() => router.push('/multiplayer')} />
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  buttons: { gap: spacing.md, alignItems: 'stretch' },
   root: { flex: 1, backgroundColor: colors.paper },
   // Styles for the hidden settings link.
   // topBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: spacing.md },

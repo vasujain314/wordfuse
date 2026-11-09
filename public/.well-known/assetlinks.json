@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.vasuapps.wordfuse",
+      "sha256_cert_fingerprints": [
+        "8F:64:94:4C:EA:55:0A:C3:D8:AA:7B:BE:0C:D0:E0:A3:6A:81:72:41:D7:D8:2D:15:7B:6A:53:3F:39:65:7D:23"
+      ]
+    }
+  }
+]

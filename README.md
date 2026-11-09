@@ -1,8 +1,11 @@
 # Word Fuse
 
-An offline word game for Android and iOS. You get a letter fragment (e.g. `ON`) and have to type a
+A word game for Android, iOS and web. You get a letter fragment (e.g. `ON`) and have to type a
 real English word containing it (e.g. `PROTON`) before the fuse burns out. Valid words score a
 point and grow your streak; a timeout costs a life and resets the streak.
+
+Single player works fully offline. **Play with friends** (online multiplayer) needs a network
+connection; see [Multiplayer](#multiplayer).
 
 Built with Expo (SDK 58) and Expo Router in plain JavaScript. The look is a typewriter on paper
 (Courier Prime, ink and one danger red). Animations use React Native's built-in `Animated` with the
@@ -54,6 +57,46 @@ JavaScript (no dev server needed) and targets `armeabi-v7a` and `arm64-v8a`, so 
 
 iOS device builds need an Apple Developer account; the iOS simulator needs a Mac.
 
+## Multiplayer
+
+A host creates a room and shares a link (`https://wordfuse.expo.app/join/CODE`) or the 4-letter
+code. Players sit around a circle; the fragment sits inside a countdown ring. Turns go clockwise,
+everyone sees the active player type live, a timeout costs that player a life (2 each), and the
+last player standing wins. A leaderboard ranks everyone by words guessed; the host can rematch.
+Late joiners watch as spectators. If the host leaves or loses connection, another player takes
+over hosting automatically and the game carries on.
+
+**How it works (no data stored):** rooms use Supabase Realtime **broadcast and presence only**;
+there are no database tables. The hosting device runs the game and broadcasts the full room state;
+every other device keeps a copy, so any of them can take over. Names exist only while the room
+does; nothing is written to storage on the server or the device.
+
+**Setup:**
+
+1. Create a free Supabase project. In **Realtime → Settings**, allow public access (rooms don't use
+   accounts).
+2. Put the project URL and the public anon (or publishable) key in `.env.local` (git-ignored):
+
+   ```bash
+   EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon or sb_publishable_ key>
+   ```
+
+   For EAS builds, add the same two variables with `eas env:create` (each build profile in
+   `eas.json` names its environment). Without them, the "play with friends" button is hidden.
+
+3. Optional: `EXPO_PUBLIC_WEB_ORIGIN` sets the share-link origin (default
+   `https://wordfuse.expo.app`, or the page's own origin on web).
+
+**Testing without Supabase:** `EXPO_PUBLIC_MP_TRANSPORT=local npx expo start --web` connects rooms
+between tabs of the same browser (BroadcastChannel), handy for trying it on one machine.
+
+**Links open the app (Android App Links):** `app.json` has an auto-verified intent filter for
+`https://wordfuse.expo.app/join*`, and `public/.well-known/assetlinks.json` (served by the web
+deployment) lists the app's signing certificate fingerprint. If the web host or the signing key
+changes, update both. `wordfuse://join/CODE` works too. iOS Universal Links need an Apple Team ID
+(`ios.associatedDomains` + `apple-app-site-association`) and are not set up yet.
+
 ## Regenerating assets
 
 `assets/words.txt` and `assets/fragments.json` are generated and committed. To rebuild them:
@@ -71,7 +114,11 @@ Current output: 168,551 words; tiers 1–4 have 305 / 1,720 / 1,418 / 8,017 frag
 ## Project layout
 
 - `app/`: thin Expo Router routes (`index` splash, `home`, `game`, `settings`, `game-over`).
-- `src/core/`: `constants.js` (every tuning number), `theme.js`.
+- `src/core/`: `constants.js` (every tuning number, `MP_*` for multiplayer), `theme.js`.
+- `src/multiplayer/`: pure multiplayer logic: `roomState` (rules), `hostEngine` (runs a room),
+  `roomSession` (each device's view, host election and hand-over), `protocol`, `election`,
+  `roomCode`, `names`, `seatLayout`, `ringGeometry`, and `transport/` (Supabase Realtime, plus a
+  local BroadcastChannel transport for testing).
 - `src/game/`: pure game logic with no React/Expo imports: config, validation, word repository,
   fragment picker, state, events, `GameController`.
 - `src/services/`: haptics (one buzz for a rejected word), AsyncStorage persistence, dictionary
@@ -80,7 +127,8 @@ Current output: 168,551 words; tiers 1–4 have 305 / 1,720 / 1,418 / 8,017 frag
   `useAppPause`, `useHardwareKeyboard` (desktop web).
 - `src/components/`, `src/screens/`: UI. `FuseBar` is the timer line, `DangerFrame` the screen
   edge: pulsing red in the last 20 % of a round, a red flash for a lost life and a green flash for
-  a correct word.
+  a correct word. Multiplayer adds `CountdownRing`, `SeatCircle`/`PlayerSeat` and the screens
+  in `src/screens/room/`; routes are `/multiplayer`, `/join/[code]` and `/room/[code]`.
 - `tools/buildAssets.mjs`, `__tests__/` (with small fixtures in `__tests__/fixtures/`).
 
 ## Assumptions
@@ -139,9 +187,13 @@ Deviations from the build spec and choices made where it was open:
   every frame.
 - **Keyboard keys:** ten keys must fit a row, so keys are about 36 dp wide on a 360 dp phone but
   52 dp tall. All other controls meet the 48 dp minimum.
-- **Android permissions:** only `VIBRATE` is requested. Expo's default `INTERNET` permission
-  stays because development builds need it to reach the dev server; the app itself makes no
-  network calls.
+- **Android permissions:** only `VIBRATE` is requested beyond Expo's default `INTERNET`, which
+  multiplayer and development builds need. Single player makes no network calls.
+- **Multiplayer limits and trade-offs:** 2–8 players; a full or started room seats newcomers as
+  spectators. There is no server-side referee (fine for friends). A host whose connection dies
+  silently is replaced after about 5–8 s, and a turn in progress keeps at least 3 s. Players who
+  drop out of presence for 10 s during a game count as having left (a page reload rejoins in time). Supabase's free plan allows
+  about 2 million messages a month; one 8-player game is roughly 20–30 thousand.
 - **Web support** is a testing convenience, not a release target. It is the only place the app
   makes an HTTP request: to read its own bundled `words.txt` from the dev server, because
   `expo-file-system` does not run in browsers. Native builds read the file from disk.

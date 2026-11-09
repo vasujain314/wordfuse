@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppProvider } from '../src/context/AppContext';
+import { MultiplayerProvider } from '../src/context/MultiplayerContext';
 import { colors } from '../src/core/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -33,17 +34,20 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AppProvider>
-        <StatusBar style="dark" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.paper },
-            animation: 'fade',
-          }}
-        >
-          <Stack.Screen name="game" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="game-over" options={{ gestureEnabled: false }} />
-        </Stack>
+        <MultiplayerProvider>
+          <StatusBar style="dark" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.paper },
+              animation: 'fade',
+            }}
+          >
+            <Stack.Screen name="game" options={{ gestureEnabled: false }} />
+            <Stack.Screen name="game-over" options={{ gestureEnabled: false }} />
+            <Stack.Screen name="room/[code]" options={{ gestureEnabled: false }} />
+          </Stack>
+        </MultiplayerProvider>
       </AppProvider>
     </SafeAreaProvider>
   );
