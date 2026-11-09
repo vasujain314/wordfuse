@@ -11,6 +11,7 @@ import { useApp } from '../context/AppContext';
 import { useMultiplayer } from '../context/MultiplayerContext';
 import { sanitizeName } from '../multiplayer/names';
 import { parseJoinTarget } from '../multiplayer/roomCode';
+import { PageMeta } from '../components/PageMeta';
 
 /** /multiplayer: pick a name, then host a room or join one by code or link. */
 export function MultiplayerHomeScreen() {
@@ -51,6 +52,11 @@ export function MultiplayerHomeScreen() {
 
   return (
     <SafeAreaView style={styles.root}>
+      <PageMeta
+        title="Play with Friends – Online Multiplayer Word Game"
+        description="Host a Word Fuse room and share the link. Take turns finding words before the fuse burns out; the last player standing wins. Free, no sign-up."
+        path="/multiplayer"
+      />
       <View style={styles.header}>
         <IconButton glyph="<" accessibilityLabel="Back" onPress={() => router.back()} />
         <Text style={styles.title} accessibilityRole="header">

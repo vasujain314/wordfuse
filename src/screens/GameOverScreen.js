@@ -8,6 +8,7 @@ import { splitAroundFragment } from '../components/MissedAnswer';
 import { SCORE_COUNT_UP_MAX_STEPS, SCORE_COUNT_UP_MS } from '../core/constants';
 import { colors, fonts, spacing } from '../core/theme';
 import { useApp } from '../context/AppContext';
+import { PageMeta } from '../components/PageMeta';
 
 const toInt = (value) => {
   const n = Number.parseInt(String(value ?? '0'), 10);
@@ -50,6 +51,7 @@ export function GameOverScreen() {
 
   return (
     <SafeAreaView style={styles.root}>
+      <PageMeta title="Game over" noindex />
       <View style={styles.center}>
         <Text style={styles.title} accessibilityRole="header">
           game over

@@ -13,10 +13,11 @@ export function shortestTurn(from, to) {
 }
 
 /**
- * Arrowhead just outside a ring of `size`, rotated around the ring's centre to point at
+ * Arrowhead just outside a ring of `size` centred at (centerX, centerY), rotated around that
+ * centre to point at
  * `angle` (degrees, 0 = right/3 o'clock, clockwise). It turns the short way round.
  */
-export function TurnPointer({ size, angle, danger, reduceMotion }) {
+export function TurnPointer({ size, centerX, centerY, angle, danger, reduceMotion }) {
   const box = size + (GAP + ARROW * 2) * 2;
   // Cumulative rotation so the arrow never spins the long way round.
   const current = useRef(null);
@@ -47,7 +48,16 @@ export function TurnPointer({ size, angle, danger, reduceMotion }) {
   return (
     <Animated.View
       pointerEvents="none"
-      style={[styles.box, { width: box, height: box, transform: [{ rotate }] }]}
+      style={[
+        styles.box,
+        {
+          left: centerX - box / 2,
+          top: centerY - box / 2,
+          width: box,
+          height: box,
+          transform: [{ rotate }],
+        },
+      ]}
     >
       <View style={[styles.arrow, { borderBottomColor: danger ? colors.danger : colors.ink }]} />
     </Animated.View>

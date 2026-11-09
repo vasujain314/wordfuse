@@ -1,0 +1,13 @@
+Word Fuse is a fast word game with a typewriter look.
+
+You get a few letters, like ON. Type a real English word that contains them, like PROTON, before the fuse burns out. Every word scores a point; run out of time and you lose a life. Two lives, ten seconds a word.
+
+PLAY WITH FRIENDS
+Host a room and share the link. Up to 8 players sit around the table and take turns; everyone sees the active player type live. Miss your word and you lose a life; the last player standing wins, and the leaderboard ranks everyone by words found. Friends can join from the app or straight from a web browser at wordfuse.expo.app.
+
+WHY YOU'LL LIKE IT
+• Quick rounds that get harder as your streak grows
+• 168,000+ words in the dictionary, and one possible answer shown whenever you miss
+• Calm, minimal paper-and-ink design
+• Works offline for solo play
+• No sign-up, no ads, no tracking

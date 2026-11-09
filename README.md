@@ -97,6 +97,22 @@ deployment) lists the app's signing certificate fingerprint. If the web host or 
 changes, update both. `wordfuse://join/CODE` works too. iOS Universal Links need an Apple Team ID
 (`ios.associatedDomains` + `apple-app-site-association`) and are not set up yet.
 
+## SEO and store listings
+
+- **Web:** `public/index.html` is the page template (title, description, keywords, canonical,
+  Open Graph/Twitter preview, `VideoGame` structured data, theme colour, manifest). Each screen
+  also sets its own title/description with `src/components/PageMeta.js` (`expo-router/head`;
+  a no-op on native); room, join, results and settings pages are `noindex`.
+  `public/robots.txt`, `public/sitemap.xml`, `public/manifest.json`, `public/og-image.png`
+  (1200×630 link preview) and `public/icon.png` are served as-is.
+- **Privacy policy:** `/privacy` (needed for store listings), linked from Home.
+- **App Store:** `store.config.json` (title, subtitle, keywords, description, categories,
+  URLs); push with `eas metadata:push` once the app exists in App Store Connect.
+- **Google Play:** `fastlane/metadata/android/en-US/` (title, short and full description) for
+  `fastlane supply` or copy-paste into Play Console.
+- The app icon and splash (`assets/images/`) are still the template ones; replace them before
+  publishing (they're the biggest store-listing factor after the name).
+
 ## Regenerating assets
 
 `assets/words.txt` and `assets/fragments.json` are generated and committed. To rebuild them:

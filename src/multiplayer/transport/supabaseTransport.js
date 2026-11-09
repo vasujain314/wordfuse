@@ -64,6 +64,10 @@ export function connectSupabase(code, { pid }) {
 
   return {
     send(type, data) {
+      // Before the channel is joined realtime-js would fall back to an HTTP request (now
+      // deprecated). Nothing is lost by skipping: the host re-broadcasts its state every
+      // heartbeat, and newcomers ask for it once subscribed.
+      if (!subscribed) return;
       channel.send({ type: 'broadcast', event: type, payload: { from: pid, data } });
     },
     onMessage(cb) {

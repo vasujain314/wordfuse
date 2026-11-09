@@ -17,9 +17,7 @@
         "backgroundColor": "#F4F1EA"
       },
       "package": "com.vasuapps.wordfuse",
-      "permissions": [
-        "android.permission.VIBRATE"
-      ],
+      "permissions": ["android.permission.VIBRATE"],
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -37,10 +35,7 @@
               "pathPrefix": "/join"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
@@ -74,6 +69,7 @@
     "web": {
       "bundler": "metro",
       "output": "single"
-    }
+    },
+    "description": "A fast, free word game: type a real word containing the letters before the fuse burns out. Play solo or with up to 8 friends online."
   }
 }

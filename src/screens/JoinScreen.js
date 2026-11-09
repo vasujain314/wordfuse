@@ -12,6 +12,7 @@ import { useMultiplayer } from '../context/MultiplayerContext';
 import { isNameTaken, sanitizeName } from '../multiplayer/names';
 import { RoomPhase } from '../multiplayer/protocol';
 import { isValidRoomCode, normalizeRoomCode } from '../multiplayer/roomCode';
+import { PageMeta } from '../components/PageMeta';
 
 /**
  * /join/[code]: where shared links land. Checks the room exists while the player types a
@@ -72,6 +73,7 @@ export function JoinScreen({ code: rawCode }) {
 
   return (
     <SafeAreaView style={styles.root}>
+      <PageMeta title="Join a game" description="You're invited to a game of Word Fuse." noindex />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title} accessibilityRole="header">
           join room

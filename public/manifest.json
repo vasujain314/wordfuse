@@ -1,0 +1,21 @@
+{
+  "name": "Word Fuse – Word Game",
+  "short_name": "Word Fuse",
+  "description": "Type a word containing the letters before the fuse burns out. Play solo or with friends.",
+  "start_url": "/home",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F4F1EA",
+  "theme_color": "#F4F1EA",
+  "categories": ["games", "education", "entertainment"],
+  "lang": "en",
+  "icons": [{ "src": "/icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }],
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "com.vasuapps.wordfuse",
+      "url": "https://play.google.com/store/apps/details?id=com.vasuapps.wordfuse"
+    }
+  ]
+}

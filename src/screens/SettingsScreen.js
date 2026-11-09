@@ -6,6 +6,7 @@ import { IconButton } from '../components/Button';
 import { LIVES_MAX, LIVES_MIN, SECONDS_MAX, SECONDS_MIN } from '../core/constants';
 import { colors, fonts, MIN_TOUCH, spacing } from '../core/theme';
 import { useApp } from '../context/AppContext';
+import { PageMeta } from '../components/PageMeta';
 
 function Stepper({ label, value, min, max, unit, onChange }) {
   return (
@@ -46,6 +47,7 @@ export function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.root}>
+      <PageMeta title="Settings" noindex />
       <View style={styles.header}>
         <IconButton glyph="<" accessibilityLabel="Back" onPress={() => router.back()} />
         <Text style={styles.title} accessibilityRole="header">

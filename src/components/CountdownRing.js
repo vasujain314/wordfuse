@@ -30,7 +30,9 @@ export function CountdownRing({ size, thickness = 6, progress, danger, children 
               borderTopLeftRadius: half,
               borderBottomLeftRadius: half,
               backgroundColor: color,
-              transformOrigin: 'right',
+              // Pivot at the circle's centre (the half-disc's right-middle), in pixels so every
+              // platform reads it the same way.
+              transformOrigin: `${half}px ${half}px`,
               transform: [{ rotate: right }],
             },
           ]}
@@ -48,7 +50,7 @@ export function CountdownRing({ size, thickness = 6, progress, danger, children 
               borderTopRightRadius: half,
               borderBottomRightRadius: half,
               backgroundColor: color,
-              transformOrigin: 'left',
+              transformOrigin: `0px ${half}px`,
               transform: [{ rotate: left }],
             },
           ]}

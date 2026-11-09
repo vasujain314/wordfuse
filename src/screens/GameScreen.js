@@ -12,6 +12,7 @@ import { GameKeyboard } from '../components/GameKeyboard';
 import { LivesIndicator } from '../components/LivesIndicator';
 import { MilestoneBanner } from '../components/MilestoneBanner';
 import { MissedAnswer } from '../components/MissedAnswer';
+import { PageMeta } from '../components/PageMeta';
 import { PauseOverlay } from '../components/PauseOverlay';
 import { WordTiles } from '../components/WordTiles';
 import {
@@ -191,6 +192,11 @@ export function GameScreen({ controller, haptics, reduceMotion, maxLives, onQuit
 
   return (
     <View style={styles.root}>
+      <PageMeta
+        title="Play"
+        description="Type a word containing the letters before the fuse burns out. Two lives, ten seconds a word."
+        path="/game"
+      />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <View style={styles.side}>
@@ -273,7 +279,7 @@ export function GameScreen({ controller, haptics, reduceMotion, maxLives, onQuit
         />
       </SafeAreaView>
 
-      <DangerFrame ref={dangerFrame} active={critical} reduceMotion={reduceMotion} />
+      <DangerFrame ref={dangerFrame} active={critical} reduceMotion={reduceMotion} fullScreen />
       <MilestoneBanner streak={milestone.streak} triggerKey={milestone.key} />
       <Dimmer ref={dimmer} color={colors.paper} />
       {paused ? (

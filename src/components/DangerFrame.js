@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { Animated, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DANGER_PULSE_MS } from '../core/constants';
 import { colors } from '../core/theme';
@@ -7,11 +8,21 @@ import { colors } from '../core/theme';
 const native = { useNativeDriver: true };
 
 /**
- * Coloured frame around the screen. Pulses red while `active` (steady with Reduce Motion).
+ * Coloured frame around the screen. With `fullScreen` it is inset by the safe area, so on
+ * edge-to-edge phones it is drawn inside the visible area (not under the status bar,
+ * camera cutout, rounded corners or gesture bar); otherwise it fills its parent.
+ * Pulses red while `active` (steady with Reduce Motion).
  * ref.flash(ms, tone) shows it briefly: 'danger' (red) when a life is lost,
  * 'success' (green) for a correct word.
  */
-export const DangerFrame = forwardRef(function DangerFrame({ active, reduceMotion }, ref) {
+export const DangerFrame = forwardRef(function DangerFrame(
+  { active, reduceMotion, fullScreen = false },
+  ref,
+) {
+  const insets = useSafeAreaInsets();
+  const edges = fullScreen
+    ? { top: insets.top, bottom: insets.bottom, left: insets.left, right: insets.right }
+    : { top: 0, bottom: 0, left: 0, right: 0 };
   const [pulse] = useState(() => new Animated.Value(0));
   const [danger] = useState(() => new Animated.Value(0));
   const [success] = useState(() => new Animated.Value(0));
@@ -51,11 +62,20 @@ export const DangerFrame = forwardRef(function DangerFrame({ active, reduceMotio
 
   return (
     <>
-      <Animated.View pointerEvents="none" style={[styles.frame, { opacity: pulse }]} />
-      <Animated.View pointerEvents="none" style={[styles.frame, { opacity: danger }]} />
       <Animated.View
         pointerEvents="none"
-        style={[styles.frame, styles.success, { opacity: success }]}
+        collapsable={false}
+        style={[styles.frame, edges, { opacity: pulse }]}
+      />
+      <Animated.View
+        pointerEvents="none"
+        collapsable={false}
+        style={[styles.frame, edges, { opacity: danger }]}
+      />
+      <Animated.View
+        pointerEvents="none"
+        collapsable={false}
+        style={[styles.frame, styles.success, edges, { opacity: success }]}
       />
     </>
   );
@@ -63,7 +83,7 @@ export const DangerFrame = forwardRef(function DangerFrame({ active, reduceMotio
 
 const styles = StyleSheet.create({
   frame: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
     borderWidth: 5,
     borderColor: colors.danger,
   },

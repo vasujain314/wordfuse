@@ -59,6 +59,9 @@ describe('supabase transport', () => {
     const got = [];
     link.onMessage((type, data, from) => got.push([type, data, from]));
     link.send('submit', { turnId: 3, word: 'PROTON' });
+    expect(ch.send).not.toHaveBeenCalled(); // not subscribed yet: skipped
+    ch.statusCb('SUBSCRIBED');
+    link.send('submit', { turnId: 3, word: 'PROTON' });
     expect(ch.send).toHaveBeenCalledWith({
       type: 'broadcast',
       event: 'submit',

@@ -17,6 +17,7 @@ import { createHapticsService } from '../../services/hapticsService';
 import { MultiplayerGameView } from './MultiplayerGameView';
 import { RoomLeaderboard } from './RoomLeaderboard';
 import { RoomLobby } from './RoomLobby';
+import { PageMeta } from '../../components/PageMeta';
 
 /** /room/[code]: lobby, game and leaderboard are phases of one screen. */
 export function RoomScreen({ code }) {
@@ -99,6 +100,7 @@ export function RoomScreen({ code }) {
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <PageMeta title={`Room ${code}`} noindex />
       <View style={styles.header}>
         <View style={styles.side}>
           {inGame && me ? <LivesIndicator lives={me.lives} maxLives={room.settings.lives} /> : null}

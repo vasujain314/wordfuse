@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+# Rooms and results are per-session pages, not content.
+Disallow: /join/
+Disallow: /room/
+Disallow: /game-over
+Disallow: /settings
+
+Sitemap: https://wordfuse.expo.app/sitemap.xml

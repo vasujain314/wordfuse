@@ -48,13 +48,28 @@ export function SeatCircle({
         Math.PI;
   return (
     <View style={{ width, height }}>
-      <View style={styles.center} pointerEvents="box-none">
-        <TurnPointer
-          size={ringSize}
-          angle={pointerAngle}
-          danger={danger}
-          reduceMotion={reduceMotion}
-        />
+      {/* Pointer and ring are placed with explicit offsets (not flex centring), so they sit
+          exactly in the middle on every platform. */}
+      <TurnPointer
+        size={ringSize}
+        centerX={width / 2}
+        centerY={height / 2}
+        angle={pointerAngle}
+        danger={danger}
+        reduceMotion={reduceMotion}
+      />
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.center,
+          {
+            left: (width - ringSize) / 2,
+            top: (height - ringSize) / 2,
+            width: ringSize,
+            height: ringSize,
+          },
+        ]}
+      >
         {children}
       </View>
       {players.map((player, i) => (
@@ -78,5 +93,5 @@ export function SeatCircle({
 }
 
 const styles = StyleSheet.create({
-  center: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  center: { position: 'absolute' },
 });

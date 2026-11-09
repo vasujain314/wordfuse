@@ -8,6 +8,7 @@ import { SPLASH_MIN_MS, TITLE_TYPE_MS } from '../core/constants';
 import { colors, fonts, spacing } from '../core/theme';
 import { useApp } from '../context/AppContext';
 import { useReduceMotion } from '../hooks/useReduceMotion';
+import { PageMeta } from '../components/PageMeta';
 
 const TITLE = 'word fuse';
 
@@ -49,6 +50,7 @@ export function SplashScreen() {
 
   return (
     <SafeAreaView style={styles.root}>
+      <PageMeta path="/home" />
       <View style={styles.center}>
         <Text style={styles.title} accessibilityRole="header" accessibilityLabel={TITLE}>
           {TITLE.slice(0, typed)}

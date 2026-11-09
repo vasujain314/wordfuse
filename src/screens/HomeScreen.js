@@ -1,13 +1,13 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-// Pressable is only used by the hidden settings link.
-import { /* Pressable, */ StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '../components/Button';
 import { colors, fonts, /* MIN_TOUCH, */ spacing } from '../core/theme';
 import { useApp } from '../context/AppContext';
 import { configKey, createConfig } from '../game/gameConfig';
+import { PageMeta } from '../components/PageMeta';
 
 export function HomeScreen() {
   const router = useRouter();
@@ -29,6 +29,11 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.root}>
+      <PageMeta
+        title="Free Word Game – Play Solo or with Friends"
+        description="A fast, free word game: type a real word containing the letters before the fuse burns out. Play solo or with friends online. No sign-up, no ads."
+        path="/home"
+      />
       {/* Settings link hidden for now.
       <View style={styles.topBar}>
         <Pressable
@@ -66,11 +71,26 @@ export function HomeScreen() {
           <Button label="multiplayer" icon="users" onPress={() => router.push('/multiplayer')} />
         </View>
       </View>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel="Privacy policy"
+        onPress={() => router.push('/privacy')}
+        style={styles.footer}
+      >
+        <Text style={styles.footerText}>privacy</Text>
+      </Pressable>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  footer: { alignSelf: 'center', minHeight: 48, justifyContent: 'center', paddingHorizontal: 16 },
+  footerText: {
+    fontFamily: fonts.regular,
+    color: colors.faded,
+    fontSize: 13,
+    textDecorationLine: 'underline',
+  },
   buttons: { gap: spacing.md, alignItems: 'stretch' },
   root: { flex: 1, backgroundColor: colors.paper },
   // Styles for the hidden settings link.
