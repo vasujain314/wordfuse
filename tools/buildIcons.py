@@ -109,7 +109,10 @@ def main():
     icon.resize((180, 180), Image.LANCZOS).save(os.path.join(pub, "apple-touch-icon.png"), optimize=True)
     icon.resize((48, 48), Image.LANCZOS).save(os.path.join(pub, "favicon.png"), optimize=True)
     adaptive.resize((512, 512), Image.LANCZOS).save(os.path.join(pub, "icon-maskable-512.png"), optimize=True)
-    banner(tight, 1200, 630, 96, 34).save(os.path.join(pub, "og-image.png"), optimize=True)
+    # Link-preview image: a small JPEG (WhatsApp is picky about large preview images).
+    banner(tight, 1200, 630, 96, 34).save(
+        os.path.join(pub, "og-image.jpg"), quality=85, optimize=True, progressive=False
+    )
 
     store = P("fastlane", "metadata", "android", "en-US", "images")
     os.makedirs(store, exist_ok=True)

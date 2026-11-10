@@ -4,20 +4,29 @@ import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 
 import { adUnits, useAdsReady } from '../ads/ads';
 
-/** An anchored adaptive banner; takes no space until an ad has loaded. */
+// Standard 320×50 banner in a slot of exactly that height. The slot is there from the first
+// frame and keeps its size whether the ad loads, fails or is still waiting for consent, so
+// nothing on the screen ever moves (an adaptive banner's height isn't known in advance).
+const SLOT_HEIGHT = 50;
+
+/** A banner ad in a fixed slot; renders nothing when no banner unit is configured. */
 export function AdBanner() {
   const ready = useAdsReady();
   const [failed, setFailed] = useState(false);
-  if (!ready || !adUnits.banner || failed) return null;
+  if (!adUnits.banner) return null;
   return (
     <View style={styles.slot}>
-      <BannerAd
-        unitId={adUnits.banner}
-        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        onAdFailedToLoad={() => setFailed(true)}
-      />
+      {ready && !failed ? (
+        <BannerAd
+          unitId={adUnits.banner}
+          size={BannerAdSize.BANNER}
+          onAdFailedToLoad={() => setFailed(true)}
+        />
+      ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({ slot: { alignItems: 'center', width: '100%' } });
+const styles = StyleSheet.create({
+  slot: { height: SLOT_HEIGHT, width: '100%', alignItems: 'center', justifyContent: 'center' },
+});

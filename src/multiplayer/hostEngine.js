@@ -5,7 +5,7 @@ import {
   MP_ACCEPT_PAUSE_MS,
   MP_HEARTBEAT_MS,
   MP_MIN_PLAYERS,
-  MP_STREAK_PER_ROUND,
+  MP_LEVEL_PER_ROUND,
   MP_SUBMIT_GRACE_MS,
   MP_TAKEOVER_MIN_REMAINING_MS,
   TIMEOUT_PAUSE_MS,
@@ -223,14 +223,14 @@ export class HostEngine {
   }
 
   pickFragment(round) {
-    const streak = (round - 1) * MP_STREAK_PER_ROUND;
-    let fragment = this.picker.next(streak);
+    const level = (round - 1) * MP_LEVEL_PER_ROUND;
+    let fragment = this.picker.next(level);
     for (
       let i = 1;
       i < MAX_FRAGMENT_TRIES && this.state.recentFragments.includes(fragment);
       i += 1
     ) {
-      fragment = this.picker.next(streak);
+      fragment = this.picker.next(level);
     }
     return fragment;
   }

@@ -1,6 +1,18 @@
-User-agent: *
+# Link-preview bots (WhatsApp, Facebook, Telegram, X, Slack, Discord, LinkedIn) may read every
+# page, including shared /join/ links, so those links show a preview card.
+User-agent: WhatsApp
+User-agent: facebookexternalhit
+User-agent: Facebot
+User-agent: meta-externalagent
+User-agent: TelegramBot
+User-agent: Twitterbot
+User-agent: Slackbot-LinkExpanding
+User-agent: Discordbot
+User-agent: LinkedInBot
 Allow: /
-# Rooms and results are per-session pages, not content.
+
+# Search engines: rooms and results are per-session pages, not content.
+User-agent: *
 Disallow: /join/
 Disallow: /room/
 Disallow: /game-over

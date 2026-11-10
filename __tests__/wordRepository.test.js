@@ -73,3 +73,34 @@ describe('findContaining', () => {
     expect(repo.findContaining('QZ')).toBeNull();
   });
 });
+
+describe('findContaining with everyday hint words', () => {
+  const words = ['TAVERN', 'VAMBRACE', 'BRAVE', 'PINFISH', 'FISHY', 'ZYZZYVA'];
+  const repo = createWordRepository(words, ['TAVERN', 'FISHY']);
+
+  it('prefers an everyday word over an obscure one', () => {
+    for (let seed = 1; seed <= 30; seed += 1) {
+      expect(repo.findContaining('AV', { random: seededRandom(seed) })).toBe('TAVERN');
+      expect(repo.findContaining('ISH', { random: seededRandom(seed) })).toBe('FISHY');
+    }
+  });
+
+  it('falls back to the whole dictionary when no everyday word fits', () => {
+    expect(repo.findContaining('BRA', { random: seededRandom(1) })).toMatch(/^(VAMBRACE|BRAVE)$/);
+    expect(repo.findContaining('AV', { exclude: ['TAVERN'] })).toMatch(/^(VAMBRACE|BRAVE)$/);
+    expect(repo.findContaining('ZYZ')).toBe('ZYZZYVA');
+  });
+
+  it('loads hints alongside the list, and works without them if they fail to load', async () => {
+    const list = async () => 'BRAVE\nTAVERN\nVAMBRACE\n';
+    const withHints = await loadWordRepository(list, 2, async () => 'TAVERN\n');
+    expect(withHints.findContaining('AV', { random: seededRandom(4) })).toBe('TAVERN');
+    const broken = await loadWordRepository(list, 2, async () => {
+      throw new Error('missing');
+    });
+    expect(broken.contains('TAVERN')).toBe(true);
+    expect(broken.findContaining('AV', { random: seededRandom(4) })).toMatch(
+      /^(TAVERN|VAMBRACE|BRAVE)$/,
+    );
+  });
+});

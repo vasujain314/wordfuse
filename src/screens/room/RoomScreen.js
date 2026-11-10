@@ -99,31 +99,37 @@ export function RoomScreen({ code }) {
   }
 
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <PageMeta title={`Room ${code}`} noindex />
-      <View style={styles.header}>
-        <View style={styles.side}>
-          {inGame && me ? <LivesIndicator lives={me.lives} maxLives={room.settings.lives} /> : null}
+    // The leave overlay sits outside SafeAreaView (whose padding would cut it short) so it
+    // covers the whole screen.
+    <View style={styles.outer}>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+        <PageMeta title={`Room ${code}`} noindex />
+        <View style={styles.header}>
+          <View style={styles.side}>
+            {inGame && me ? (
+              <LivesIndicator lives={me.lives} maxLives={room.settings.lives} />
+            ) : null}
+          </View>
+          <Text style={styles.code} accessibilityLabel={`Room ${[...code].join(' ')}`}>
+            room {code}
+          </Text>
+          <View style={[styles.side, styles.sideEnd]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Leave room"
+              onPress={() => setConfirming(true)}
+              style={({ pressed }) => [styles.exit, pressed && { opacity: 0.4 }]}
+            >
+              <Feather name="log-out" size={22} color={colors.inkSoft} />
+            </Pressable>
+          </View>
         </View>
-        <Text style={styles.code} accessibilityLabel={`Room ${[...code].join(' ')}`}>
-          room {code}
-        </Text>
-        <View style={[styles.side, styles.sideEnd]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Leave room"
-            onPress={() => setConfirming(true)}
-            style={({ pressed }) => [styles.exit, pressed && { opacity: 0.4 }]}
-          >
-            <Feather name="log-out" size={22} color={colors.inkSoft} />
-          </Pressable>
-        </View>
-      </View>
-      {body}
+        {body}
+      </SafeAreaView>
       {confirming ? (
         <LeaveConfirm isHost={isHost} onLeave={leave} onStay={() => setConfirming(false)} />
       ) : null}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -136,6 +142,7 @@ function Message({ text }) {
 }
 
 const styles = StyleSheet.create({
+  outer: { flex: 1, backgroundColor: colors.paper },
   root: {
     flex: 1,
     backgroundColor: colors.paper,

@@ -34,18 +34,17 @@ describe('GameController', () => {
       fragment: 'ON',
       lives: 3,
       score: 0,
-      streak: 0,
       secondsLeft: 12,
       roundDurationMs: 12000,
     });
   });
 
-  it('accepts a valid word: score +1, streak +1, then a new fragment', () => {
+  it('accepts a valid word: score +1, then a new fragment', () => {
     const { controller, events, type, state, time } = setup();
     type('proton');
     const result = controller.submit();
     expect(result).toEqual({ kind: ValidationKind.valid, word: 'PROTON' });
-    expect(state()).toMatchObject({ phase: 'resolving', score: 1, wordsSolved: 1, streak: 1 });
+    expect(state()).toMatchObject({ phase: 'resolving', score: 1, wordsSolved: 1 });
     expect(events.map((e) => e.type)).toContain('wordAccepted');
     time.advance(VALID_WORD_PAUSE_MS);
     expect(state()).toMatchObject({ phase: 'playing', fragment: 'AT', input: '' });
@@ -83,14 +82,13 @@ describe('GameController', () => {
     expect(controller.submit().kind).toBe(ValidationKind.alreadyUsed);
   });
 
-  it('times out: loses a life, resets the streak, pauses, then a new fragment', () => {
+  it('times out: loses a life, keeps the score, pauses, then a new fragment', () => {
     const { controller, type, state, tick, events, time } = setup({ lives: 3 });
     type('PROTON');
     controller.submit();
     time.advance(VALID_WORD_PAUSE_MS);
-    expect(state().streak).toBe(1);
     tick(10000);
-    expect(state()).toMatchObject({ phase: 'resolving', lives: 2, streak: 0, score: 1 });
+    expect(state()).toMatchObject({ phase: 'resolving', lives: 2, score: 1 });
     expect(events).toContainEqual({ type: 'lifeLost', livesLeft: 2 });
     time.advance(TIMEOUT_PAUSE_MS - 1);
     expect(state().phase).toBe('resolving');
@@ -154,7 +152,6 @@ describe('GameController', () => {
     expect(events.at(-1)).toEqual({
       type: 'gameOver',
       score: 0,
-      bestStreak: 0,
       lastMiss: { fragment: 'ON', answer: expect.stringContaining('ON') },
     });
     expect(time.pending()).toBe(0);
@@ -230,14 +227,44 @@ describe('GameController', () => {
     expect(state()).toMatchObject({ secondsLeft: 1, timerState: 'critical' });
   });
 
-  it('emits a streak milestone at 5', () => {
+  it('says "new best" once, the moment the run beats the saved best', () => {
     const { controller, type, events, time } = setup({ fragments: ['ON'] });
-    for (const word of ['ON', 'ONE', 'PROTON', 'TONE', 'STONE']) {
+    controller.setPreviousBest(2);
+    for (const word of ['ONE', 'PROTON', 'TONE', 'STONE']) {
       type(word);
       controller.submit();
       time.advance(VALID_WORD_PAUSE_MS);
     }
-    expect(events).toContainEqual({ type: 'streakMilestone', streak: 5 });
+    const newBest = events.filter((e) => e.type === 'newBest');
+    expect(newBest).toEqual([{ type: 'newBest', score: 3 }]);
+  });
+
+  it('does not say "new best" on a first-ever game or below the best', () => {
+    const first = setup({ fragments: ['ON'] });
+    for (const word of ['ONE', 'PROTON']) {
+      first.type(word);
+      first.controller.submit();
+      first.time.advance(VALID_WORD_PAUSE_MS);
+    }
+    expect(first.events.some((e) => e.type === 'newBest')).toBe(false);
+
+    const below = setup({ fragments: ['ON'] });
+    below.controller.setPreviousBest(5);
+    below.type('PROTON');
+    below.controller.submit();
+    expect(below.events.some((e) => e.type === 'newBest')).toBe(false);
+  });
+
+  it('gets harder as the score rises (fragment level = score), even after a miss', () => {
+    const levels = [];
+    const { controller, type, tick, time } = setup({ fragments: ['ON'] });
+    controller.fragmentPicker = { next: (level) => (levels.push(level), 'ON') };
+    type('PROTON');
+    controller.submit();
+    time.advance(VALID_WORD_PAUSE_MS);
+    tick(10000); // miss: the score (and difficulty) stays
+    time.advance(TIMEOUT_PAUSE_MS);
+    expect(levels).toEqual([1, 1]);
   });
 
   it('backspace removes the last letter', () => {

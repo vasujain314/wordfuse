@@ -17,7 +17,13 @@ export function CountdownRing({ size, thickness = 6, progress, danger, children 
   const left = progress.interpolate(LEFT_HALF_INTERPOLATION);
   return (
     <View style={{ width: size, height: size }}>
-      <View style={[styles.fill, { borderRadius: half, backgroundColor: colors.rule }]} />
+      {/* Track. Explicit size: with absoluteFill Android collapsed this view's height. */}
+      <View
+        style={[
+          styles.track,
+          { width: size, height: size, borderRadius: half, backgroundColor: colors.rule },
+        ]}
+      />
       {/* Right half: a left half-disc swings in, filling 12 → 6 o'clock. */}
       <View style={[styles.clip, { left: half, width: half, height: size }]}>
         <Animated.View
@@ -69,7 +75,7 @@ export function CountdownRing({ size, thickness = 6, progress, danger, children 
 }
 
 const styles = StyleSheet.create({
-  fill: { ...StyleSheet.absoluteFillObject },
+  track: { position: 'absolute', top: 0, left: 0 },
   clip: { position: 'absolute', top: 0, overflow: 'hidden' },
   halfDisc: { position: 'absolute', top: 0 },
   inner: {

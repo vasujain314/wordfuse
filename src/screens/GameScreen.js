@@ -10,7 +10,7 @@ import { Dimmer } from '../components/Dimmer';
 import { FuseBar } from '../components/FuseBar';
 import { GameKeyboard } from '../components/GameKeyboard';
 import { LivesIndicator } from '../components/LivesIndicator';
-import { MilestoneBanner } from '../components/MilestoneBanner';
+import { NewBestBanner } from '../components/NewBestBanner';
 import { MissedAnswer } from '../components/MissedAnswer';
 import { PageMeta } from '../components/PageMeta';
 import { PauseOverlay } from '../components/PauseOverlay';
@@ -50,7 +50,7 @@ export function GameScreen({ controller, haptics, reduceMotion, maxLives, onQuit
   const state = useGameController(controller);
   const [shakeKey, setShakeKey] = useState(0);
   const [reject, setReject] = useState('');
-  const [milestone, setMilestone] = useState({ key: 0, streak: 0 });
+  const [newBestKey, setNewBestKey] = useState(0);
 
   const dangerFrame = useRef(null);
   const dimmer = useRef(null);
@@ -128,8 +128,8 @@ export function GameScreen({ controller, haptics, reduceMotion, maxLives, onQuit
           setReject(rejectMessageFor(event.result, controller.getSnapshot().fragment));
           setShakeKey((k) => k + 1);
           break;
-        case GameEventType.streakMilestone:
-          setMilestone((m) => ({ key: m.key + 1, streak: event.streak }));
+        case GameEventType.newBest:
+          setNewBestKey((k) => k + 1);
           break;
         case GameEventType.lifeLost:
           progress.stopAnimation();
@@ -280,7 +280,7 @@ export function GameScreen({ controller, haptics, reduceMotion, maxLives, onQuit
       </SafeAreaView>
 
       <DangerFrame ref={dangerFrame} active={critical} reduceMotion={reduceMotion} fullScreen />
-      <MilestoneBanner streak={milestone.streak} triggerKey={milestone.key} />
+      <NewBestBanner triggerKey={newBestKey} />
       <Dimmer ref={dimmer} color={colors.paper} />
       {paused ? (
         <PauseOverlay

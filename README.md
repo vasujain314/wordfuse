@@ -166,7 +166,7 @@ It removes the image generator's corner watermark, shifts the paper to the app b
 - `assets/images/icon.png` — app icon (iOS, legacy Android)
 - `assets/images/adaptive-icon.png` — Android adaptive foreground; the art stays inside the 66 dp safe circle
 - `assets/images/splash.png` — splash image
-- `public/` — `icon.png` (512), `icon-192.png`, `icon-maskable-512.png`, `apple-touch-icon.png`, `favicon.png`, `og-image.png`
+- `public/` — `icon.png` (512), `icon-192.png`, `icon-maskable-512.png`, `apple-touch-icon.png`, `favicon.png`, `og-image.jpg`
 - `fastlane/metadata/android/en-US/images/` — Play Store `icon.png` (512) and `featureGraphic.png` (1024×500)
 
 ## Project layout

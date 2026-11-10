@@ -64,13 +64,12 @@ describe('GameScreen', () => {
   });
   afterEach(() => jest.restoreAllMocks());
 
-  it('renders the fragment, timer, lives, score and streak', async () => {
+  it('renders the fragment, timer, lives and score', async () => {
     const controller = createFakeController({
       phase: 'playing',
       fragment: 'ON',
       input: 'PROT',
       score: 3,
-      streak: 2,
       secondsLeft: 7,
     });
     await renderScreen(controller);
@@ -102,7 +101,7 @@ describe('GameScreen', () => {
     await fireEvent.press(screen.getByLabelText('Q'));
     await fireEvent.press(screen.getByLabelText('Backspace'));
     await fireEvent.press(screen.getByLabelText('Submit word'));
-    await act(() => controller.emit({ type: 'wordAccepted', word: 'ONE', score: 1, streak: 1 }));
+    await act(() => controller.emit({ type: 'wordAccepted', word: 'ONE', score: 1 }));
     await act(() => controller.emit({ type: 'lifeLost', livesLeft: 1 }));
     expect(haptics.play).not.toHaveBeenCalled();
     await act(() =>
@@ -147,13 +146,20 @@ describe('GameScreen', () => {
     expect(screen.getByText('AT')).toBeTruthy();
   });
 
+  it('shows "new best" when the run passes the saved best', async () => {
+    const controller = createFakeController({ phase: 'playing', fragment: 'ON' });
+    await renderScreen(controller);
+    await act(() => controller.emit({ type: 'newBest', score: 6 }));
+    expect(screen.getByText('new best')).toBeTruthy();
+  });
+
   it('reports game over after the dim delay', async () => {
     jest.useFakeTimers();
     const controller = createFakeController({ phase: 'playing', fragment: 'ON' });
     const onGameOver = jest.fn();
     await renderScreen(controller, { onGameOver });
     const lastMiss = { fragment: 'ON', answer: 'STONE' };
-    await act(() => controller.emit({ type: 'gameOver', score: 4, bestStreak: 3, lastMiss }));
+    await act(() => controller.emit({ type: 'gameOver', score: 4, lastMiss }));
     await act(() => jest.runAllTimers());
     expect(onGameOver).toHaveBeenCalledWith({ score: 4, lastMiss });
     jest.useRealTimers();

@@ -1,8 +1,8 @@
 import { TIERS } from '../core/constants';
 
-/** Tier number (1-4) for a streak. */
-export function tierForStreak(streak) {
-  const match = TIERS.find((t) => streak >= t.minStreak && streak <= t.maxStreak);
+/** Tier number (1-4) for a difficulty level (the run's score in solo play). */
+export function tierForScore(score) {
+  const match = TIERS.find((t) => score >= t.minScore && score <= t.maxScore);
   return match ? match.tier : TIERS[TIERS.length - 1].tier;
 }
 
@@ -60,9 +60,9 @@ export function createFragmentPicker(tiers, random) {
   }
 
   return {
-    /** @param {number} streak */
-    next(streak) {
-      const fragment = draw(resolveTier(tierForStreak(streak)));
+    /** @param {number} level difficulty level: the score in solo play */
+    next(level) {
+      const fragment = draw(resolveTier(tierForScore(level)));
       last = fragment;
       return fragment;
     },

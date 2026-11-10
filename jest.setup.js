@@ -24,7 +24,7 @@ jest.mock('react-native-google-mobile-ads', () => {
     },
     AdsConsentPrivacyOptionsRequirementStatus: { REQUIRED: 'REQUIRED' },
     BannerAd: () => null,
-    BannerAdSize: { ANCHORED_ADAPTIVE_BANNER: 'ANCHORED_ADAPTIVE_BANNER' },
+    BannerAdSize: { BANNER: 'BANNER', ANCHORED_ADAPTIVE_BANNER: 'ANCHORED_ADAPTIVE_BANNER' },
     InterstitialAd: { createForAdRequest: jest.fn(ad) },
     MaxAdContentRating: { PG: 'PG' },
     TestIds: { ADAPTIVE_BANNER: 'test-banner', INTERSTITIAL: 'test-interstitial' },

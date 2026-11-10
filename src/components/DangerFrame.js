@@ -3,7 +3,7 @@ import { Animated, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DANGER_PULSE_MS } from '../core/constants';
-import { colors } from '../core/theme';
+import { colors, fill } from '../core/theme';
 
 const native = { useNativeDriver: true };
 
@@ -22,7 +22,7 @@ export const DangerFrame = forwardRef(function DangerFrame(
   const insets = useSafeAreaInsets();
   const edges = fullScreen
     ? { top: insets.top, bottom: insets.bottom, left: insets.left, right: insets.right }
-    : { top: 0, bottom: 0, left: 0, right: 0 };
+    : fill;
   const [pulse] = useState(() => new Animated.Value(0));
   const [danger] = useState(() => new Animated.Value(0));
   const [success] = useState(() => new Animated.Value(0));

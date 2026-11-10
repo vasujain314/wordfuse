@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, spacing } from '../core/theme';
+import { colors, fill, fonts, spacing } from '../core/theme';
 import { Button } from './Button';
 
 /** Covers the board while paused; shows resume/quit or the 3-2-1 countdown. */
@@ -24,7 +24,7 @@ export function PauseOverlay({ countdown, onResume, onQuit }) {
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...fill,
     backgroundColor: colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',

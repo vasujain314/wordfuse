@@ -5,8 +5,8 @@ import { adsenseClient, adUnits } from '../ads/ads';
 
 /**
  * An AdSense display unit at a fixed banner size (320×50 on phones, 728×90 on wide
- * screens), so an ad can never push the page around. Renders nothing until AdSense is
- * configured; an unfilled slot is hidden by a rule in public/index.html.
+ * screens), in a slot that keeps that height whether or not an ad fills it, so the page
+ * never moves. Renders nothing until AdSense is configured.
  */
 export function AdBanner() {
   const slot = adUnits.banner;
@@ -22,7 +22,7 @@ export function AdBanner() {
   }, [slot, w]);
   if (!slot) return null;
   return (
-    <View style={styles.slot}>
+    <View style={[styles.slot, { height: h }]}>
       <ins
         // A new element when the size changes, since AdSense fills each one only once.
         key={w}

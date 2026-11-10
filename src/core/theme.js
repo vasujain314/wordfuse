@@ -20,3 +20,17 @@ export const fonts = Object.freeze({
 export const spacing = Object.freeze({ xs: 4, sm: 8, md: 16, lg: 24, xl: 32 });
 
 export const MIN_TOUCH = 48;
+
+/**
+ * Covers the parent completely. Used instead of StyleSheet.absoluteFill: on Android
+ * (RN 0.88) views stretched with right/bottom insets collapsed in some layouts (the
+ * ring track, overlays), while an explicit 100% size lays out the same everywhere.
+ * The parent must not have padding (100% is the content box).
+ */
+export const fill = Object.freeze({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+});

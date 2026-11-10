@@ -16,13 +16,13 @@ export const WORD_MIN_LENGTH = 2;
 export const WORD_MAX_LENGTH = 15;
 export const DICTIONARY_CHUNK_SIZE = 20000;
 
-// Fragment tiers: streak ranges and how many dictionary words must contain a fragment.
-// `maxStreak` is inclusive; the last tier is open-ended.
+// Fragment tiers: score ranges (words found this run) and how many dictionary words must
+// contain a fragment. `maxScore` is inclusive; the last tier is open-ended.
 export const TIERS = [
-  { tier: 1, minStreak: 0, maxStreak: 4, lengths: [2], minWords: 500, maxWords: Infinity },
-  { tier: 2, minStreak: 5, maxStreak: 11, lengths: [3], minWords: 150, maxWords: Infinity },
-  { tier: 3, minStreak: 12, maxStreak: 24, lengths: [3], minWords: 40, maxWords: 149 },
-  { tier: 4, minStreak: 25, maxStreak: Infinity, lengths: [3, 4], minWords: 15, maxWords: 39 },
+  { tier: 1, minScore: 0, maxScore: 4, lengths: [2], minWords: 500, maxWords: Infinity },
+  { tier: 2, minScore: 5, maxScore: 11, lengths: [3], minWords: 150, maxWords: Infinity },
+  { tier: 3, minScore: 12, maxScore: 24, lengths: [3], minWords: 40, maxWords: 149 },
+  { tier: 4, minScore: 25, maxScore: Infinity, lengths: [3, 4], minWords: 15, maxWords: 39 },
 ];
 
 // Round timing
@@ -36,9 +36,6 @@ export const COUNTDOWN_STEP_MS = 1000;
 export const TIMER_WARNING_FRACTION = 0.5;
 export const TIMER_CRITICAL_FRACTION = 0.2;
 
-// Streak milestones that trigger celebrations
-export const STREAK_MILESTONES = [5, 10, 25, 50];
-
 // Haptics
 export const HAPTIC_THROTTLE_MS = 40;
 
@@ -49,7 +46,7 @@ export const SHAKE_DISTANCE = 10;
 export const PLUS_ONE_MS = 600;
 export const LIFE_LOST_FLASH_MS = 600;
 export const CORRECT_FLASH_MS = 600;
-export const MILESTONE_BANNER_MS = 900;
+export const NEW_BEST_BANNER_MS = 1500; // "new best" note shown once when a run beats the best
 export const GAME_OVER_DIM_MS = 600;
 export const REJECT_MESSAGE_MS = 1400;
 export const GAME_OVER_NAV_DELAY_MS = 900;
@@ -68,7 +65,7 @@ export const MP_MAX_PLAYERS = 8;
 export const MP_ROOM_CODE_LENGTH = 4;
 export const MP_NAME_MAX_LENGTH = 12;
 export const MP_ACCEPT_PAUSE_MS = 900; // long enough for everyone to read the accepted word
-export const MP_STREAK_PER_ROUND = 2; // difficulty: each full round counts as 2 streak steps
+export const MP_LEVEL_PER_ROUND = 2; // difficulty: each full round counts like 2 words in solo
 export const MP_SUBMIT_GRACE_MS = 500; // host accepts submits this late (network delay)
 export const MP_HEARTBEAT_MS = 1500; // host re-broadcasts the room state this often
 export const MP_HOST_SILENCE_MS = 5000; // no state for this long = host considered gone
@@ -77,7 +74,8 @@ export const MP_TAKEOVER_MIN_REMAINING_MS = 3000; // a takeover never leaves les
 export const MP_SYNC_DRIFT_MS = 250; // only correct the local deadline beyond this drift
 export const MP_TYPING_THROTTLE_MS = 150;
 export const MP_WATCHDOG_MS = 500; // how often members check the host is still there
-export const MP_ROOM_PROBE_MS = 4000; // how long to wait for a room to answer
+export const MP_ROOM_PROBE_MS = 4000; // how long to wait for a room to answer, once connected
+export const MP_PROBE_CONNECT_MS = 15000; // how long connecting to the room channel may take
 export const MP_CODE_CHECK_MS = 1000; // how long a new code is checked for an existing room
 export const MP_RECENT_FRAGMENTS = 10;
 export const MP_ABSENT_LEAVE_MS = 10000; // a player missing from presence this long has left (covers a page reload)

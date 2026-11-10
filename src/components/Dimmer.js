@@ -1,5 +1,7 @@
 import { forwardRef, useImperativeHandle, useState } from 'react';
-import { Animated, StyleSheet } from 'react-native';
+import { Animated } from 'react-native';
+
+import { fill } from '../core/theme';
 
 /** Full-screen fade used at game over. Call ref.dim(toOpacity, durationMs). */
 export const Dimmer = forwardRef(function Dimmer({ color }, ref) {
@@ -13,10 +15,5 @@ export const Dimmer = forwardRef(function Dimmer({ color }, ref) {
     }),
     [opacity],
   );
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[StyleSheet.absoluteFill, { backgroundColor: color, opacity }]}
-    />
-  );
+  return <Animated.View pointerEvents="none" style={[fill, { backgroundColor: color, opacity }]} />;
 });

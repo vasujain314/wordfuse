@@ -1,7 +1,6 @@
 import {
   COUNTDOWN_FROM,
   COUNTDOWN_STEP_MS,
-  STREAK_MILESTONES,
   TIMEOUT_PAUSE_MS,
   TIMER_CRITICAL_FRACTION,
   TIMER_WARNING_FRACTION,
@@ -30,7 +29,7 @@ export class GameController {
    * @param {{
    *   config: import('./gameConfig').GameConfig,
    *   repository: import('./wordRepository').WordRepository,
-   *   fragmentPicker: { next: (streak: number) => string },
+   *   fragmentPicker: { next: (level: number) => string },
    *   now: () => number,
    *   schedule: (fn: () => void, ms: number) => () => void,
    *   random?: () => number,
@@ -51,6 +50,9 @@ export class GameController {
     this.pausedRemainingMs = 0;
     this.pauseRequested = false;
     this.disposed = false;
+    // The saved best score for these rules; a run that passes it gets one "new best".
+    this.previousBest = 0;
+    this.newBestAnnounced = false;
 
     this.subscribe = this.subscribe.bind(this);
     this.getSnapshot = this.getSnapshot.bind(this);
@@ -109,12 +111,18 @@ export class GameController {
     this.cancelScheduled();
     this.pauseRequested = false;
     this.state = createInitialState(this.config);
+    this.newBestAnnounced = false;
     this.startRound({});
   }
 
-  /** Starts a new round with a fresh fragment for the current streak. */
+  /** The best score saved so far (loaded from storage after the run starts). */
+  setPreviousBest(bestScore) {
+    this.previousBest = Number.isFinite(bestScore) ? bestScore : 0;
+  }
+
+  /** Starts a new round with a fresh fragment; it gets harder as the score rises. */
   startRound(extra) {
-    const fragment = this.fragmentPicker.next(this.state.streak);
+    const fragment = this.fragmentPicker.next(this.state.score);
     const roundDurationMs = this.config.secondsPerWord * 1000;
     const changes = {
       ...extra,
@@ -178,20 +186,19 @@ export class GameController {
       this.emit({ type: GameEventType.wordRejected, result });
       return result;
     }
-    const streak = s.streak + 1;
     const score = s.score + 1;
     this.setState({
       phase: 'resolving',
       score,
       wordsSolved: s.wordsSolved + 1,
-      streak,
-      bestStreak: Math.max(s.bestStreak, streak),
       usedWords: [...s.usedWords, result.word],
       lastResult: result,
     });
-    this.emit({ type: GameEventType.wordAccepted, word: result.word, score, streak });
-    if (STREAK_MILESTONES.includes(streak)) {
-      this.emit({ type: GameEventType.streakMilestone, streak });
+    this.emit({ type: GameEventType.wordAccepted, word: result.word, score });
+    // Once per run, the moment it beats an earlier best (not on a player's very first game).
+    if (!this.newBestAnnounced && this.previousBest > 0 && score > this.previousBest) {
+      this.newBestAnnounced = true;
+      this.emit({ type: GameEventType.newBest, score });
     }
     this.later(() => this.startRound({}), VALID_WORD_PAUSE_MS);
     return result;
@@ -231,7 +238,6 @@ export class GameController {
       lastMiss,
       phase: gameOver ? 'gameOver' : 'resolving',
       lives: Math.max(0, lives),
-      streak: 0,
       input: '',
       secondsLeft: 0,
       timerState: 'critical',
@@ -242,7 +248,6 @@ export class GameController {
       this.emit({
         type: GameEventType.gameOver,
         score: this.state.score,
-        bestStreak: this.state.bestStreak,
         lastMiss,
       });
       return;

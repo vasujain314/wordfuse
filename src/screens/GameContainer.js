@@ -67,8 +67,13 @@ function GameSession({ repository }) {
 
   useEffect(() => {
     run.controller.startRun();
+    // The saved best, so the run can say "new best" the moment it passes it.
+    storage
+      .getBest(configKey(run.config))
+      .then((best) => run.controller.setPreviousBest(best.bestScore))
+      .catch(() => {});
     return () => run.controller.dispose();
-  }, [run]);
+  }, [run, storage]);
 
   const pause = useCallback(() => run.controller.pause(), [run]);
   useAppPause(pause);

@@ -1,6 +1,7 @@
 import {
   MP_CLAIM_STAGGER_MS,
   MP_HOST_SILENCE_MS,
+  MP_PROBE_CONNECT_MS,
   MP_PROTOCOL_VERSION,
   MP_SYNC_DRIFT_MS,
   MP_TYPING_THROTTLE_MS,
@@ -538,18 +539,29 @@ export class RoomSession {
  *   schedule: (fn: () => void, ms: number) => () => void, timeoutMs: number }} options
  * @returns {Promise<import('./roomState').RoomState | null>}
  */
-export function probeRoom({ connect, code, pid, schedule, timeoutMs }) {
+export function probeRoom({
+  connect,
+  code,
+  pid,
+  schedule,
+  timeoutMs,
+  connectTimeoutMs = MP_PROBE_CONNECT_MS,
+}) {
   return new Promise((resolve) => {
     const link = connect(code, { pid });
     let done = false;
+    let cancelReply = null;
     const finish = (room) => {
       if (done) return;
       done = true;
-      cancel();
+      cancelConnect();
+      cancelReply?.();
       link.leave();
       resolve(room);
     };
-    const cancel = schedule(() => finish(null), timeoutMs);
+    // The reply window starts once the channel is joined: connecting can take seconds on a
+    // cold start or a slow network, and must not count as "no room".
+    const cancelConnect = schedule(() => finish(null), connectTimeoutMs);
     link.onMessage((type, raw) => {
       if (type !== MessageType.snap) return;
       const snap = sanitizeMessage(type, raw);
@@ -560,7 +572,9 @@ export function probeRoom({ connect, code, pid, schedule, timeoutMs }) {
     });
     link.onPresence(() => {});
     link.onStatus((status) => {
-      if (status === 'subscribed') link.send(MessageType.sync, {});
+      if (status !== 'subscribed' || done) return;
+      link.send(MessageType.sync, {});
+      cancelReply ??= schedule(() => finish(null), timeoutMs);
     });
   });
 }

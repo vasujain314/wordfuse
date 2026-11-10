@@ -1,4 +1,6 @@
-// Builds assets/words.txt and assets/fragments.json from tools/source/enable1.txt.
+// Builds assets/words.txt and assets/fragments.json from tools/source/enable1.txt, and
+// assets/hints.txt (everyday words used for the "one answer was …" hint) from the dictionary
+// and SCOWL's American English list (tools/source/scowl-american.txt).
 // Run with: npm run build:assets
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -11,6 +13,12 @@ const sourcePath = join(root, 'tools', 'source', 'enable1.txt');
 const blocklistPath = join(root, 'tools', 'blocklist.txt');
 const wordsPath = join(root, 'assets', 'words.txt');
 const fragmentsPath = join(root, 'assets', 'fragments.json');
+const scowlPath = join(root, 'tools', 'source', 'scowl-american.txt');
+const hintBlocklistPath = join(root, 'tools', 'hint-blocklist.txt');
+const hintsPath = join(root, 'assets', 'hints.txt');
+
+export const HINT_MIN_LENGTH = 4;
+export const HINT_MAX_LENGTH = 8;
 
 const WORD_PATTERN = /^[A-Z]+$/;
 
@@ -35,6 +43,33 @@ export function buildWordList(sourceLines, blockedWords) {
     }
   }
   return [...words].sort();
+}
+
+/**
+ * Everyday words for the timeout hint: in the dictionary and in SCOWL's list (lowercase
+ * entries only, so no names), 4–8 letters, and not on the hint blocklist.
+ * @param {string[]} words the dictionary (uppercase)
+ * @param {string[]} scowlLines raw SCOWL lines
+ * @param {string[]} blockLines blocklist lines (`*` prefix = block words containing it)
+ */
+export function buildHintList(words, scowlLines, blockLines) {
+  const everyday = new Set(
+    scowlLines
+      .map((w) => w.trim())
+      .filter((w) => /^[a-z]+$/.test(w))
+      .map((w) => w.toUpperCase()),
+  );
+  const rules = blockLines.map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+  const exact = new Set(rules.filter((r) => !r.startsWith('*')).map((r) => r.toUpperCase()));
+  const parts = rules.filter((r) => r.startsWith('*')).map((r) => r.slice(1).toUpperCase());
+  return words.filter(
+    (w) =>
+      w.length >= HINT_MIN_LENGTH &&
+      w.length <= HINT_MAX_LENGTH &&
+      everyday.has(w) &&
+      !exact.has(w) &&
+      !parts.some((p) => w.includes(p)),
+  );
 }
 
 export function countFragments(words) {
@@ -79,6 +114,18 @@ function main() {
 
   const tiers = assignTiers(countFragments(words));
   writeFileSync(fragmentsPath, `${JSON.stringify(tiers)}\n`);
+
+  if (existsSync(scowlPath)) {
+    const scowl = readFileSync(scowlPath, 'utf8').split(/\r?\n/);
+    const blocks = existsSync(hintBlocklistPath)
+      ? readFileSync(hintBlocklistPath, 'utf8').split(/\r?\n/)
+      : [];
+    const hints = buildHintList(words, scowl, blocks);
+    writeFileSync(hintsPath, `${hints.join('\n')}\n`);
+    console.log(`hints.txt: ${hints.length} everyday words`);
+  } else {
+    console.warn(`Skipped hints.txt: missing ${scowlPath}. See README "Regenerating assets".`);
+  }
 
   console.log(`words.txt: ${words.length} words (${blocked.length} blocklist entries)`);
   for (const [tier, list] of Object.entries(tiers)) {

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, spacing } from '../core/theme';
+import { colors, fill, fonts, spacing } from '../core/theme';
 import { Button } from './Button';
 
 /** "Leave the room?" overlay (works on web too, unlike Alert buttons). */
@@ -17,7 +17,7 @@ export function LeaveConfirm({ onLeave, onStay, isHost }) {
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...fill,
     backgroundColor: colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',

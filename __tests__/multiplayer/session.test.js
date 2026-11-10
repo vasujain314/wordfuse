@@ -370,4 +370,48 @@ describe('multiplayer room', () => {
     expect((await found).players.map((p) => p.name)).toEqual(['Ann', 'Ben']);
     expect(await missing).toBeNull();
   });
+
+  it('probing waits for a slow connection before giving up on a room', async () => {
+    const { net, time } = setup({ players: ['Ann', 'Ben'] });
+    // A link whose channel only joins after 6 s (cold start / slow network).
+    const slowConnect = (code, opts) => {
+      const link = net.connect(code, opts);
+      let statusCb = () => {};
+      const realOnStatus = link.onStatus.bind(link);
+      link.onStatus = (cb) => {
+        statusCb = cb;
+      };
+      realOnStatus((status) => time.schedule(() => statusCb(status), 6000));
+      return link;
+    };
+    const found = probeRoom({
+      connect: slowConnect,
+      code: 'K7QD',
+      pid: 'probe',
+      schedule: time.schedule,
+      timeoutMs: 4000,
+    });
+    time.advance(8000);
+    expect((await found).players.map((p) => p.name)).toEqual(['Ann', 'Ben']);
+  });
+
+  it('probing gives up when the channel never connects', async () => {
+    const { time } = setup({ players: ['Ann'] });
+    const silent = () => ({
+      onMessage() {},
+      onPresence() {},
+      onStatus() {},
+      send() {},
+      leave: jest.fn(),
+    });
+    const result = probeRoom({
+      connect: silent,
+      code: 'K7QD',
+      pid: 'probe',
+      schedule: time.schedule,
+      timeoutMs: 4000,
+    });
+    time.advance(16000);
+    expect(await result).toBeNull();
+  });
 });

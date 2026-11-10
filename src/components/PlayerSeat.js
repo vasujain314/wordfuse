@@ -1,7 +1,7 @@
 import { memo, useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts } from '../core/theme';
+import { colors, fill, fonts } from '../core/theme';
 import { heartsFor } from './LivesIndicator';
 
 export const SEAT_SIZE = { regular: { width: 84, height: 48 }, compact: { width: 64, height: 38 } };
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   },
   active: { borderColor: colors.ink, borderWidth: 1.5 },
   out: { opacity: 0.35 },
-  flash: { ...StyleSheet.absoluteFillObject, borderWidth: 2, borderRadius: 3 },
+  flash: { ...fill, borderWidth: 2, borderRadius: 3 },
   name: { fontFamily: fonts.bold, color: colors.ink, fontSize: 13 },
   nameCompact: { fontSize: 11 },
   me: { textDecorationLine: 'underline' },

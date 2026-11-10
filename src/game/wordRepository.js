@@ -51,18 +51,46 @@ function compareWord(word, text, start, end) {
 }
 
 /**
- * Repository over one sorted, newline-separated string. Memory stays close to the size of
- * the file (one string plus two Int32Arrays) instead of one heap string per word.
+ * Finds a word in a newline-separated `text` that contains `fragment`, starting at a random
+ * point so answers vary. `match` is the first one of 4–8 letters; `fallback` the first of
+ * any length.
  */
-function createSortedTextRepository(text, starts, ends) {
-  const count = starts.length;
-
-  /** The whole line around position `at`. */
+function searchContaining(text, fragment, random, exclude) {
   const lineAt = (at) => {
     const start = text.lastIndexOf('\n', at) + 1;
     const end = text.indexOf('\n', at);
     return text.slice(start, end === -1 ? text.length : end);
   };
+  const origin = Math.floor(random() * text.length);
+  let fallback = null;
+  let from = origin;
+  let wrapped = false;
+  for (let found = 0; found < ANSWER_MAX_MATCHES; found += 1) {
+    let at = text.indexOf(fragment, from);
+    if (at === -1 || (wrapped && at >= origin)) {
+      if (wrapped) break;
+      wrapped = true;
+      at = text.indexOf(fragment, 0);
+      if (at === -1 || at >= origin) break;
+    }
+    const word = lineAt(at);
+    if (word !== fragment && !exclude.includes(word)) {
+      if (word.length >= ANSWER_MIN_LENGTH && word.length <= ANSWER_MAX_LENGTH) {
+        return { match: word, fallback };
+      }
+      if (!fallback) fallback = word;
+    }
+    from = at + fragment.length;
+  }
+  return { match: null, fallback };
+}
+
+/**
+ * Repository over one sorted, newline-separated string. Memory stays close to the size of
+ * the file (one string plus two Int32Arrays) instead of one heap string per word.
+ */
+function createSortedTextRepository(text, starts, ends, hints = null) {
+  const count = starts.length;
 
   return {
     /**
@@ -72,26 +100,14 @@ function createSortedTextRepository(text, starts, ends) {
      */
     findContaining(fragment, { random = Math.random, exclude = [] } = {}) {
       if (!fragment || count === 0) return null;
-      const origin = Math.floor(random() * text.length);
-      let fallback = null;
-      let from = origin;
-      let wrapped = false;
-      for (let found = 0; found < ANSWER_MAX_MATCHES; found += 1) {
-        let at = text.indexOf(fragment, from);
-        if (at === -1 || (wrapped && at >= origin)) {
-          if (wrapped) break;
-          wrapped = true;
-          at = text.indexOf(fragment, 0);
-          if (at === -1 || at >= origin) break;
-        }
-        const word = lineAt(at);
-        if (word !== fragment && !exclude.includes(word)) {
-          if (word.length >= ANSWER_MIN_LENGTH && word.length <= ANSWER_MAX_LENGTH) return word;
-          if (!fallback) fallback = word;
-        }
-        from = at + fragment.length;
+      // Everyday words first (e.g. TAVERN rather than VAMBRACE); the whole dictionary only
+      // when no everyday word fits.
+      if (hints) {
+        const everyday = searchContaining(hints, fragment, random, exclude);
+        if (everyday.match) return everyday.match;
       }
-      return fallback;
+      const { match, fallback } = searchContaining(text, fragment, random, exclude);
+      return match ?? fallback;
     },
 
     contains(word) {
@@ -152,7 +168,7 @@ async function indexLines(text, chunkSize) {
  * @param {Iterable<string>} words
  * @returns {WordRepository}
  */
-export function createWordRepository(words) {
+export function createWordRepository(words, hintWords = null) {
   const text = normalizeText([...words]);
   const starts = [];
   const ends = [];
@@ -166,7 +182,8 @@ export function createWordRepository(words) {
       lineStart = i + 1;
     }
   }
-  return createSortedTextRepository(text, Int32Array.from(starts), Int32Array.from(ends));
+  const hints = hintWords ? normalizeText([...hintWords]) : null;
+  return createSortedTextRepository(text, Int32Array.from(starts), Int32Array.from(ends), hints);
 }
 
 /**
@@ -175,10 +192,17 @@ export function createWordRepository(words) {
  * fast path; anything else is normalised first.
  * @param {() => Promise<string>} readText
  * @param {number} [chunkSize]
+ * @param {(() => Promise<string>) | null} [readHints] everyday words preferred for the
+ *   timeout hint; optional, and a failure just means hints come from the whole dictionary
  * @returns {Promise<WordRepository>}
  */
-export async function loadWordRepository(readText, chunkSize = DICTIONARY_CHUNK_SIZE) {
+export async function loadWordRepository(
+  readText,
+  chunkSize = DICTIONARY_CHUNK_SIZE,
+  readHints = null,
+) {
   let text;
+  const hintsPromise = readHints ? readHints().catch(() => null) : Promise.resolve(null);
   try {
     text = await readText();
   } catch (error) {
@@ -193,5 +217,7 @@ export async function loadWordRepository(readText, chunkSize = DICTIONARY_CHUNK_
     text = normalizeText(text.split('\n'));
     index = await indexLines(text, 0);
   }
-  return createSortedTextRepository(text, index.starts, index.ends);
+  const hintsText = await hintsPromise;
+  const hints = typeof hintsText === 'string' && hintsText.trim() ? hintsText.toUpperCase() : null;
+  return createSortedTextRepository(text, index.starts, index.ends, hints);
 }
