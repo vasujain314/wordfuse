@@ -24,6 +24,14 @@
     <meta name="apple-mobile-web-app-title" content="Word Fuse" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <link
+      rel="preload"
+      href="/fonts/CourierPrime-Regular.ttf"
+      as="font"
+      type="font/ttf"
+      crossorigin
+    />
+    <link rel="preload" href="/fonts/CourierPrime-Bold.ttf" as="font" type="font/ttf" crossorigin />
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -89,6 +97,112 @@
         height: 100%;
         flex: 1;
       }
+      /* Typewriter font (Courier Prime, OFL), served with the page and preloaded above. The
+         family names match the ones the app uses on every platform. */
+      @font-face {
+        font-family: 'CourierPrime_400Regular';
+        src: url('/fonts/CourierPrime-Regular.ttf') format('truetype');
+        font-display: block;
+      }
+      @font-face {
+        font-family: 'CourierPrime_700Bold';
+        src: url('/fonts/CourierPrime-Bold.ttf') format('truetype');
+        font-display: block;
+      }
+      /* Static first-paint copy of Home (#shell). Mirrors the React Native Web layout. */
+      body {
+        margin: 0;
+      }
+      .wf-shell {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background-color: #f4f1ea;
+      }
+      .wf-shell div,
+      .wf-shell a,
+      .wf-shell span {
+        box-sizing: border-box;
+      }
+      .wf-center {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        padding: 24px;
+      }
+      .wf-title {
+        font-family: 'CourierPrime_700Bold';
+        color: #1d1c1a;
+        font-size: 40px;
+      }
+      .wf-tagline {
+        font-family: 'CourierPrime_400Regular';
+        color: #57534b;
+        font-size: 15px;
+        line-height: 22px;
+        text-align: center;
+      }
+      .wf-rule {
+        width: 120px;
+        height: 1px;
+        background-color: #d6d0c2;
+      }
+      .wf-best {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .wf-best-label,
+      .wf-best-meta {
+        font-family: 'CourierPrime_400Regular';
+        color: #9a958a;
+        font-size: 14px;
+      }
+      .wf-best-meta {
+        font-size: 13px;
+      }
+      .wf-best-value {
+        font-family: 'CourierPrime_700Bold';
+        color: #1d1c1a;
+        font-size: 48px;
+      }
+      .wf-buttons {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+      }
+      .wf-button {
+        min-height: 52px;
+        min-width: 200px;
+        padding: 0 24px;
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid #1d1c1a;
+        border-radius: 2px;
+        text-decoration: none;
+        font-family: 'CourierPrime_700Bold';
+        color: #1d1c1a;
+        font-size: 18px;
+        letter-spacing: 1px;
+      }
+      .wf-footer {
+        align-self: center;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        font-family: 'CourierPrime_400Regular';
+        color: #9a958a;
+        font-size: 13px;
+        text-decoration: underline;
+      }
     </style>
   </head>
 
@@ -97,6 +211,77 @@
       Word Fuse is a free word game: type a word containing the letters before the fuse burns out.
       Please enable JavaScript to play.
     </noscript>
-    <div id="root"></div>
+    <div id="root">
+      <!-- First paint: a static copy of the Home screen, shown while the app's JavaScript
+           loads (React replaces it with the identical live screen). Links work without JS.
+           Removed at once on any other page. Keep in sync with src/screens/HomeScreen.js. -->
+      <div id="shell" class="wf-shell">
+        <div class="wf-center">
+          <div class="wf-title">word fuse</div>
+          <div class="wf-tagline">
+            type a word containing the letters<br />before the fuse burns out.
+          </div>
+          <div class="wf-rule"></div>
+          <div class="wf-best">
+            <div class="wf-best-label">best</div>
+            <div class="wf-best-value" id="shell-best">0</div>
+            <div class="wf-best-meta">2 lives · 10s per word</div>
+          </div>
+          <div class="wf-buttons">
+            <a class="wf-button" href="/game">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#1D1C1A"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <span>play</span>
+            </a>
+            <a class="wf-button" href="/multiplayer">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#1D1C1A"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <span>multiplayer</span>
+            </a>
+          </div>
+        </div>
+        <a class="wf-footer" href="/privacy"><span>privacy</span></a>
+      </div>
+      <script>
+        (function () {
+          var shell = document.getElementById('shell');
+          if (!/^\/(home\/?)?$/.test(location.pathname)) {
+            shell.remove();
+            return;
+          }
+          try {
+            var best = JSON.parse(localStorage.getItem('wordfuse:best:L2_T10') || 'null');
+            if (best && best.bestScore > 0) {
+              document.getElementById('shell-best').textContent = String(best.bestScore);
+            }
+          } catch (e) {}
+        })();
+      </script>
+    </div>
   </body>
 </html>

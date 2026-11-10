@@ -8,6 +8,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { initAds } from '../src/ads/ads';
@@ -17,14 +18,19 @@ import { colors } from '../src/core/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+const isWeb = Platform.OS === 'web';
+
+// Apps: the typewriter font and the Feather icon font are loaded from the app's own assets
+// before the first screen. Web: the typewriter font comes from CSS in public/index.html
+// (preloaded with the page, so it downloads alongside the JavaScript instead of after it),
+// and rendering doesn't wait for fonts; icons load themselves.
+const FONTS = isWeb
+  ? Feather.font
+  : { CourierPrime_400Regular, CourierPrime_700Bold, ...Feather.font };
+
 export default function RootLayout() {
-  // Bundled typewriter font and the Feather icon font, loaded from the app's own assets.
-  const [loaded, error] = useFonts({
-    CourierPrime_400Regular,
-    CourierPrime_700Bold,
-    ...Feather.font,
-  });
-  const ready = loaded || Boolean(error);
+  const [loaded, error] = useFonts(FONTS);
+  const ready = isWeb || loaded || Boolean(error);
 
   useEffect(() => {
     if (!ready) return;

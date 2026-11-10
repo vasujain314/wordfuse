@@ -3,3 +3,6 @@ assets
 tools/source
 package-lock.json
 build
+
+# Google Search Console verification file: must stay exactly as issued
+public/google*.html
