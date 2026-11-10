@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AdBanner } from '../components/AdBanner';
@@ -9,6 +9,24 @@ import { colors, fonts, /* MIN_TOUCH, */ spacing } from '../core/theme';
 import { useApp } from '../context/AppContext';
 import { configKey, createConfig } from '../game/gameConfig';
 import { PageMeta } from '../components/PageMeta';
+import { PLAY_STORE_URL, SHOW_APP_DOWNLOAD } from '../core/links';
+
+/**
+ * Website only, and not on iPhone/iPad (there is no iOS app). Worked out once, the same way
+ * the first-paint copy in public/index.html does, so the two always match.
+ */
+const SHOW_GET_APP =
+  SHOW_APP_DOWNLOAD &&
+  Platform.OS === 'web' &&
+  typeof navigator !== 'undefined' &&
+  !/iPhone|iPad|iPod/.test(navigator.userAgent) &&
+  !(/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+
+const FOOTER_LINKS = [
+  { label: 'how to play', href: '/how-to-play', a11y: 'How to play' },
+  { label: 'faq', href: '/faq', a11y: 'Frequently asked questions' },
+  { label: 'privacy', href: '/privacy', a11y: 'Privacy policy' },
+];
 
 export function HomeScreen() {
   const router = useRouter();
@@ -70,23 +88,41 @@ export function HomeScreen() {
         <View style={styles.buttons}>
           <Button label="play" icon="play" onPress={() => router.push('/game')} />
           <Button label="multiplayer" icon="users" onPress={() => router.push('/multiplayer')} />
+          {SHOW_GET_APP ? (
+            <Button
+              label="get the app"
+              icon="download"
+              accessibilityLabel="Get the Android app on Google Play"
+              onPress={() => Linking.openURL(PLAY_STORE_URL).catch(() => {})}
+            />
+          ) : null}
         </View>
       </View>
-      <Pressable
-        accessibilityRole="link"
-        accessibilityLabel="Privacy policy"
-        onPress={() => router.push('/privacy')}
-        style={styles.footer}
-      >
-        <Text style={styles.footerText}>privacy</Text>
-      </Pressable>
+      <View style={styles.footer}>
+        {FOOTER_LINKS.map((link, i) => (
+          <View key={link.href} style={styles.footerItem}>
+            {i > 0 ? <Text style={styles.footerDot}>·</Text> : null}
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={link.a11y}
+              onPress={() => router.push(link.href)}
+              style={styles.footerLink}
+            >
+              <Text style={styles.footerText}>{link.label}</Text>
+            </Pressable>
+          </View>
+        ))}
+      </View>
       <AdBanner />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  footer: { alignSelf: 'center', minHeight: 48, justifyContent: 'center', paddingHorizontal: 16 },
+  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  footerItem: { flexDirection: 'row', alignItems: 'center' },
+  footerLink: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 10 },
+  footerDot: { fontFamily: fonts.regular, color: colors.faded, fontSize: 13 },
   footerText: {
     fontFamily: fonts.regular,
     color: colors.faded,

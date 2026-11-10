@@ -1,0 +1,62 @@
+# Word Fuse
+
+> A free, fast word game with a typewriter look. You get a few letters (like ON) and type a real English word that contains them (like PROTON) before the fuse burns out. Play solo, or online with up to 8 friends by sharing a link. No sign-up; works in any web browser and on Android.
+
+## Play
+
+- [Play in the browser](https://wordfuse.expo.app/home): solo game, no install
+- [Play with friends online](https://wordfuse.expo.app/multiplayer): host a room and share the link; 2–8 players
+- [Android app on Google Play](https://play.google.com/store/apps/details?id=com.vasuapps.wordfuse)
+
+## How to play
+
+- **The idea:** You get a few letters, like ON. Type a real English word that contains them together, in that order (PROTON, STONE, ONION), and press enter before the fuse burns out.
+- **Scoring:** Every word is one point. You have 10 seconds a word, and a word can only be used once per game. A wrong word just shows why (missing letters, not in the dictionary, already used) so you can try again before time runs out.
+- **Lives:** You start with 2 lives. Let the fuse burn out and you lose one, and the game shows a word that would have worked. Lose both and the game is over. Beat your best score and you get a "new best" stamp.
+- **Getting harder:** The more words you find, the harder the letters get: first common pairs like ON or ST, then three letters, then rarer combinations.
+- **Playing with friends:** Tap multiplayer, enter your name and host a game, then share the link or the 4-letter room code. Friends join from the app or straight from a web browser, no install needed. 2 to 8 players sit around the table and take turns, and everyone watches the active player type live. Each turn has new letters, everyone has 2 lives, and the last player standing wins. The leaderboard ranks everyone by words found.
+- **Tips:** Plurals and verb forms count (STONES, TONED). Think of words where the letters sit at the start, the middle or the end. Short words are fine: speed beats length.
+
+## FAQ
+
+### Is Word Fuse free?
+
+Yes. Word Fuse is free to play on the web and on Android. It shows a few ads, never during a turn.
+
+### Do I need an account?
+
+No. There is no sign-up. Your best score is saved on your device.
+
+### How do I play with friends online?
+
+Tap multiplayer, enter your name and host a game, then share the link or the room code. Friends open the link in the app or in any web browser and join the lobby. When everyone is in, the host starts the game.
+
+### How many players can play together?
+
+From 2 to 8 players. Anyone who joins after the game has started can watch and play in the next game.
+
+### Which words are allowed?
+
+Any word in the 168,000-word English dictionary the game uses, including plurals and verb forms, as long as it contains the letters shown together and in order. Names and abbreviations do not count, and each word can be used once per game.
+
+### Can I play on iPhone?
+
+Yes, in Safari or any browser at wordfuse.expo.app, including multiplayer with friends on Android. There is no iPhone app yet.
+
+### Does Word Fuse work offline?
+
+Single player works offline in the Android app. Multiplayer needs an internet connection.
+
+### Does it get harder?
+
+Yes. The more words you find, the harder the letters get. In multiplayer, the letters get harder each time the turn goes all the way round the table.
+
+### What data does Word Fuse keep?
+
+Word Fuse has no accounts and keeps no database of players. Your best score stays on your device, multiplayer names are only passed between the players in a room, and ads come from Google. See the privacy policy for details.
+
+## Pages
+
+- [How to play](https://wordfuse.expo.app/how-to-play)
+- [FAQ](https://wordfuse.expo.app/faq)
+- [Privacy policy](https://wordfuse.expo.app/privacy)

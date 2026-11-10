@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "build:assets": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON tools/buildAssets.mjs",
-    "build:icons": "python3 tools/buildIcons.py"
+    "build:icons": "python3 tools/buildIcons.py",
+    "build:help": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON tools/buildHelp.mjs"
   },
   "jest": {
     "preset": "jest-expo",

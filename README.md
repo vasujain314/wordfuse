@@ -153,6 +153,13 @@ Code: `src/ads/ads.native.js`, `src/ads/ads.web.js`, `src/components/AdBanner.*.
 
 Current output: 168,551 words; tiers 1–4 have 305 / 1,720 / 1,418 / 8,017 fragments.
 
+## Help pages, crawlers and first paint (web)
+
+- **How to play / FAQ** (`/how-to-play`, `/faq`, linked from the Home footer with privacy) read their text from `src/content/help.js`. After editing it, run `npm run build:help`: it copies the text into `public/index.html` (static HTML in `<noscript>` and FAQ structured data, for search engines and AI crawlers that don't run JavaScript) and into `public/llms.txt`. `__tests__/helpContent.test.js` fails if they drift apart.
+- **"get the app"** (website only, hidden on iPhone/iPad) opens the Play Store listing. Switch: `SHOW_APP_DOWNLOAD` in `src/core/links.js` and `showGetApp` in `public/index.html`.
+- **First paint:** `public/index.html` contains a static copy of the Home screen (`#shell`) that shows as soon as the page and fonts arrive, then React replaces it with the identical live screen (LCP under 1 s on a throttled phone). It removes itself on every other page. **When you change Home's layout, change the copy too**; it must line up exactly or the page will visibly jump.
+- The typewriter font is served from `public/fonts/` and preloaded on the web (the apps bundle it as before). `public/index.html` is excluded from Prettier because parts of it are generated.
+
 ## Icons and store images
 
 Everything is generated from one drawing, `assets/brand/icon-source.png` (2048×2048):
