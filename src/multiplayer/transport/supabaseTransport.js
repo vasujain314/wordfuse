@@ -1,3 +1,4 @@
+import { reportMultiplayerError } from '../errorAlert';
 import { MessageType } from '../protocol';
 
 const URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -41,12 +42,22 @@ export function connectSupabase(code, { pid }) {
   let onStatus = () => {};
   let meta = null;
   let subscribed = false;
+  const report = (kind, error) => {
+    reportMultiplayerError(kind, error, { room: code }).catch(() => {});
+  };
+  const trackMeta = () => {
+    channel.track(meta).catch((e) => report('presence', e));
+  };
 
   for (const event of EVENTS) {
     channel.on('broadcast', { event }, ({ payload }) => {
       if (payload && typeof payload.from === 'string') onMessage(event, payload.data, payload.from);
     });
   }
+  // Server-side problems on the channel (e.g. rate limits, quota, auth) arrive as system events.
+  channel.on('system', {}, (payload) => {
+    if (payload?.status && payload.status !== 'ok') report('system', payload);
+  });
   channel.on('presence', { event: 'sync' }, () => {
     const state = channel.presenceState();
     const members = Object.values(state)
@@ -55,10 +66,11 @@ export function connectSupabase(code, { pid }) {
       .map(({ presence_ref: _ref, ...rest }) => rest);
     onPresence(members);
   });
-  channel.subscribe((status) => {
+  channel.subscribe((status, err) => {
     // Realtime rejoins channels after a reconnect; presence must be tracked again each time.
     subscribed = status === 'SUBSCRIBED';
-    if (subscribed && meta) channel.track(meta).catch(() => {});
+    if (subscribed && meta) trackMeta();
+    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') report(status, err);
     onStatus(STATUS[status] ?? 'connecting');
   });
 
@@ -81,7 +93,7 @@ export function connectSupabase(code, { pid }) {
     },
     track(nextMeta) {
       meta = nextMeta;
-      if (subscribed) channel.track(meta).catch(() => {});
+      if (subscribed) trackMeta();
     },
     leave() {
       channel.untrack().catch(() => {});

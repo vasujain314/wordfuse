@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AdBanner } from '../../components/AdBanner';
 import { Button } from '../../components/Button';
 import { colors, fonts, spacing } from '../../core/theme';
 import { leaderboard } from '../../multiplayer/roomState';
@@ -46,6 +47,7 @@ export function RoomLeaderboard({ snapshot, onRematch }) {
           <Text style={styles.hint}>waiting for the host to start another game…</Text>
         )}
       </View>
+      <AdBanner />
     </ScrollView>
   );
 }

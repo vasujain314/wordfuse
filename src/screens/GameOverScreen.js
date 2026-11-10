@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { noteGameFinished, showInterstitialIfDue } from '../ads/ads';
+import { AdBanner } from '../components/AdBanner';
 import { Button } from '../components/Button';
 import { splitAroundFragment } from '../components/MissedAnswer';
 import { SCORE_COUNT_UP_MAX_STEPS, SCORE_COUNT_UP_MS } from '../core/constants';
@@ -46,6 +48,16 @@ export function GameOverScreen() {
   const shown = useCountUp(score);
   const done = shown >= score;
 
+  // Each finished run counts once towards the next full-screen ad.
+  useEffect(() => {
+    if (lastRun) noteGameFinished();
+  }, [lastRun]);
+
+  // A due ad shows before leaving, so the next game never starts behind it.
+  const leave = (go) => {
+    showInterstitialIfDue().then(go);
+  };
+
   // Opened directly (e.g. a refresh on web) with no finished run: go home.
   if (!lastRun) return <Redirect href="/home" />;
 
@@ -86,10 +98,19 @@ export function GameOverScreen() {
           </View>
         ) : null}
         <View style={styles.actions}>
-          <Button label="play again" icon="play" onPress={() => router.replace('/game')} />
-          <Button label="home" variant="secondary" onPress={() => router.dismissTo('/home')} />
+          <Button
+            label="play again"
+            icon="play"
+            onPress={() => leave(() => router.replace('/game'))}
+          />
+          <Button
+            label="home"
+            variant="secondary"
+            onPress={() => leave(() => router.dismissTo('/home'))}
+          />
         </View>
       </View>
+      <AdBanner />
     </SafeAreaView>
   );
 }

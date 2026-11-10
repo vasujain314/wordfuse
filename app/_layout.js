@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { initAds } from '../src/ads/ads';
 import { AppProvider } from '../src/context/AppContext';
 import { MultiplayerProvider } from '../src/context/MultiplayerContext';
 import { colors } from '../src/core/theme';
@@ -26,7 +27,10 @@ export default function RootLayout() {
   const ready = loaded || Boolean(error);
 
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync().catch(() => {});
+    if (!ready) return;
+    SplashScreen.hideAsync().catch(() => {});
+    // After the splash, so the consent form (where required) shows over the app.
+    initAds();
   }, [ready]);
 
   if (!ready) return null;

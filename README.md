@@ -97,6 +97,32 @@ deployment) lists the app's signing certificate fingerprint. If the web host or 
 changes, update both. `wordfuse://join/CODE` works too. iOS Universal Links need an Apple Team ID
 (`ios.associatedDomains` + `apple-app-site-association`) and are not set up yet.
 
+## Ads
+
+Google ads on every platform, never during a turn:
+
+| Where                                    | Android / iOS (AdMob)                                                                       | Web (AdSense)                                |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Home, game over, multiplayer leaderboard | anchored adaptive banner                                                                    | 320×50 (728×90 on wide screens)              |
+| Between solo games                       | interstitial after every 3rd game, at most one per 2 min, shown before the next game starts | none (turn on Auto ads in AdSense if wanted) |
+
+Code: `src/ads/ads.native.js`, `src/ads/ads.web.js`, `src/components/AdBanner.*.js`, tuning in `src/core/constants.js` (`ADS_*`).
+
+**Configuration** (nothing shows in release builds until these are set):
+
+| Variable                                                        | Where                                              | Value                                     |
+| --------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------- |
+| `ADMOB_ANDROID_APP_ID`, `ADMOB_IOS_APP_ID`                      | EAS env vars (build time, read by `app.config.js`) | `ca-app-pub-…~…` app ids                  |
+| `EXPO_PUBLIC_ADMOB_BANNER_ANDROID` / `_IOS`                     | EAS env vars                                       | banner unit ids `ca-app-pub-…/…`          |
+| `EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID` / `_IOS`               | EAS env vars                                       | interstitial unit ids                     |
+| `EXPO_PUBLIC_ADSENSE_CLIENT`, `EXPO_PUBLIC_ADSENSE_BANNER_SLOT` | `.env.local` before `expo export`                  | `ca-pub-…` and the display unit's slot id |
+
+- Development builds always use Google's test ads; never tap real ads on your own device.
+- Changing the AdMob app ids needs a new native build; unit ids and AdSense ids only need a new JS bundle / web export.
+- Consent: the apps run Google's UMP consent form (EEA/UK/US states) before loading ads; create the GDPR and US-states messages under AdMob → Privacy & messaging. On the web, turn on AdSense's own consent message. `/privacy` shows an "ad privacy choices" button where Google requires one.
+- Add `ads.txt` (web) and `app-ads.txt` (apps) to `public/` with the line Google gives you (`google.com, pub-…, DIRECT, f08c47fec0942fa0`), and list `https://wordfuse.expo.app` as the developer website in both stores.
+- Store forms: Play Console → "Contains ads: yes" and Data safety (device or other ids, approximate location, app interactions, shared with Google for advertising); App Store → privacy labels for Identifiers/Usage data used for third-party advertising.
+
 ## SEO and store listings
 
 - **Web:** `public/index.html` is the page template (title, description, keywords, canonical,
@@ -126,6 +152,22 @@ changes, update both. `wordfuse://join/CODE` works too. iOS Universal Links need
    number of fragments per tier.
 
 Current output: 168,551 words; tiers 1–4 have 305 / 1,720 / 1,418 / 8,017 fragments.
+
+## Icons and store images
+
+Everything is generated from one drawing, `assets/brand/icon-source.png` (2048×2048):
+
+```sh
+npm run build:icons   # Python 3 + Pillow
+```
+
+It removes the image generator's corner watermark, shifts the paper to the app background (`#F4F1EA`), centres the key-and-fuse artwork and writes:
+
+- `assets/images/icon.png` — app icon (iOS, legacy Android)
+- `assets/images/adaptive-icon.png` — Android adaptive foreground; the art stays inside the 66 dp safe circle
+- `assets/images/splash.png` — splash image
+- `public/` — `icon.png` (512), `icon-192.png`, `icon-maskable-512.png`, `apple-touch-icon.png`, `favicon.png`, `og-image.png`
+- `fastlane/metadata/android/en-US/images/` — Play Store `icon.png` (512) and `featureGraphic.png` (1024×500)
 
 ## Project layout
 

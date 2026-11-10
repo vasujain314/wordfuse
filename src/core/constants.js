@@ -81,3 +81,12 @@ export const MP_ROOM_PROBE_MS = 4000; // how long to wait for a room to answer
 export const MP_CODE_CHECK_MS = 1000; // how long a new code is checked for an existing room
 export const MP_RECENT_FRAGMENTS = 10;
 export const MP_ABSENT_LEAVE_MS = 10000; // a player missing from presence this long has left (covers a page reload)
+
+// Ads (Google AdMob in the apps, AdSense on the web). Never shown during a turn.
+export const ADS_INTERSTITIAL_EVERY_GAMES = 3; // full-screen ad after every 3rd solo game
+export const ADS_INTERSTITIAL_MIN_GAP_MS = 120000; // and at most one every 2 minutes
+export const ADS_RETRY_MS = 60000; // wait before loading again after a failed request
+
+// Multiplayer error alerts (emailed to the developer).
+export const MP_ALERT_MIN_GAP_MS = 30 * 60 * 1000; // same kind of error at most once per 30 min per device
+export const MP_ALERT_MAX_PER_SESSION = 3; // and at most 3 alerts per app session

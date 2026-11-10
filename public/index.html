@@ -7,7 +7,7 @@
     <title>Word Fuse – Free Word Game | Play Solo or with Friends Online</title>
     <meta
       name="description"
-      content="A fast, free word game: type a real word containing the letters before the fuse burns out. Play solo or with friends online. No sign-up, no ads."
+      content="A fast, free word game: type a real word containing the letters before the fuse burns out. Play solo or with friends online. No sign-up."
     />
     <meta
       name="keywords"
@@ -25,8 +25,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" type="image/png" href="/icon.png" />
-    <link rel="apple-touch-icon" href="/icon.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <!-- Link previews (Open Graph / Twitter) -->
     <meta property="og:type" content="website" />
@@ -85,6 +86,10 @@
         display: flex;
         height: 100%;
         flex: 1;
+      }
+      /* An AdSense slot that got no ad takes no space. */
+      ins.adsbygoogle[data-ad-status='unfilled'] {
+        display: none !important;
       }
     </style>
   </head>

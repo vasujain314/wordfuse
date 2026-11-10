@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AdBanner } from '../components/AdBanner';
 import { Button } from '../components/Button';
 import { colors, fonts, /* MIN_TOUCH, */ spacing } from '../core/theme';
 import { useApp } from '../context/AppContext';
@@ -31,7 +32,7 @@ export function HomeScreen() {
     <SafeAreaView style={styles.root}>
       <PageMeta
         title="Free Word Game – Play Solo or with Friends"
-        description="A fast, free word game: type a real word containing the letters before the fuse burns out. Play solo or with friends online. No sign-up, no ads."
+        description="A fast, free word game: type a real word containing the letters before the fuse burns out. Play solo or with friends online. No sign-up."
         path="/home"
       />
       {/* Settings link hidden for now.
@@ -79,6 +80,7 @@ export function HomeScreen() {
       >
         <Text style={styles.footerText}>privacy</Text>
       </Pressable>
+      <AdBanner />
     </SafeAreaView>
   );
 }
