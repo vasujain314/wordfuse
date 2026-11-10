@@ -103,3 +103,21 @@ describe('ring geometry', () => {
     expect([rightHalfRotation(-1), leftHalfRotation(2)]).toEqual([0, 180]);
   });
 });
+
+describe('room share text', () => {
+  const { shareContent } = require('../../src/screens/room/RoomLobby');
+  const url = 'https://wordfuse.expo.app/join/K7QD';
+  const count = (s) => s.split(url).length - 1;
+
+  it.each(['web', 'android'])('%s: one text with the link once, no separate url', (os) => {
+    const c = shareContent(os, url);
+    expect(c).toEqual({ message: `Join my Word Fuse game: ${url}` });
+    expect(count(c.message)).toBe(1);
+  });
+
+  it('ios: the link only in url, so the text and preview do not repeat it', () => {
+    const c = shareContent('ios', url);
+    expect(c.url).toBe(url);
+    expect(count(c.message)).toBe(0);
+  });
+});

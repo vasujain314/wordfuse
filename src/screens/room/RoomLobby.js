@@ -8,6 +8,20 @@ import { colors, fonts, MIN_TOUCH, spacing } from '../../core/theme';
 import { joinUrl } from '../../multiplayer/roomCode';
 import { webOrigin } from './webOrigin';
 
+/**
+ * What to hand the share sheet so the link appears exactly once. Share targets join the text
+ * and the url field, so a link in both shows up twice:
+ * - web (navigator.share) and Android: one text that ends with the link;
+ * - iOS: the link in `url` (iMessage builds a preview card from it) and plain text.
+ * @param {string} os Platform.OS
+ * @param {string} url
+ */
+export function shareContent(os, url) {
+  const text = 'Join my Word Fuse game';
+  if (os === 'ios') return { message: text, url };
+  return { message: `${text}: ${url}` };
+}
+
 /** Room code, share link and who's here. The host starts the game. */
 export function RoomLobby({ snapshot, onStart }) {
   const { room, pid, isHost } = snapshot;
@@ -17,17 +31,17 @@ export function RoomLobby({ snapshot, onStart }) {
   const me = room.players.find((p) => p.pid === pid);
 
   const share = async () => {
-    const message = `Join my Word Fuse game: ${url}`;
+    const content = shareContent(Platform.OS, url);
     try {
       if (Platform.OS === 'web') {
         if (typeof navigator !== 'undefined' && navigator.share) {
-          await navigator.share({ text: message, url });
+          await navigator.share({ text: content.message });
         } else {
           await navigator.clipboard.writeText(url);
           setCopied(true);
         }
       } else {
-        await Share.share({ message, url });
+        await Share.share(content);
       }
     } catch {
       // Cancelled or unsupported: the link is shown on screen to copy by hand.
