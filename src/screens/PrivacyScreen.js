@@ -27,7 +27,7 @@ const SECTIONS = [
   ],
   [
     'permissions',
-    "the android app only asks to vibrate (for a wrong word), to use the internet (for multiplayer and ads) and, for google's ads, to read the advertising id.",
+    "the android app only asks to vibrate (for a wrong word), to use the internet (for multiplayer and ads), for google's ads to read the advertising id, and, while you're in a multiplayer room, to keep running in the background and show a notification so the room stays connected (you can turn notifications off; nothing is sent to us).",
   ],
   [
     'children',

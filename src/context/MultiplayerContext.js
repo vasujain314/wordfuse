@@ -19,6 +19,7 @@ import {
 } from '../../modules/room-keepalive';
 import { MP_CODE_CHECK_MS, MP_ROOM_PROBE_MS } from '../core/constants';
 import { generateRoomCode } from '../multiplayer/roomCode';
+import { askForNotificationsOnce } from '../services/notificationPermission';
 import { probeRoom, RoomSession } from '../multiplayer/roomSession';
 import { forgetRoom, recallRoom, rememberRoom } from '../multiplayer/tabMemory';
 import { getConnect } from '../multiplayer/transport';
@@ -73,6 +74,11 @@ export function MultiplayerProvider({ children }) {
       setSession(next);
       rememberRoom({ code, pid, name: displayName });
       keepRoomAlive(code);
+      // Android 13+: the room notification only shows with permission. Ask once; if granted
+      // now, refresh the notification so it appears straight away.
+      askForNotificationsOnce().then((granted) => {
+        if (granted) keepRoomAlive(code);
+      });
       return next;
     },
     [connect, dictionary.repository, fragments, session, settings],
