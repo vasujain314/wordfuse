@@ -1,6 +1,22 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { AppState } from 'react-native';
 
+import {
+  addRoomKeepAliveListener,
+  isKeepAliveSupported,
+  isRoomKeepAliveRunning,
+  setRoomKeepAliveInBackground,
+  startRoomKeepAlive,
+  stopRoomKeepAlive,
+} from '../../modules/room-keepalive';
 import { MP_CODE_CHECK_MS, MP_ROOM_PROBE_MS } from '../core/constants';
 import { generateRoomCode } from '../multiplayer/roomCode';
 import { probeRoom, RoomSession } from '../multiplayer/roomSession';
@@ -18,6 +34,13 @@ const schedule = (fn, ms) => {
 /** A fresh id for this device in a room. Not stored anywhere. */
 const newPid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 const CODE_ATTEMPTS = 3;
+
+/** Android: keep the room connected in the background (no-op elsewhere). */
+const keepRoomAlive = (code) =>
+  startRoomKeepAlive({
+    title: `Word Fuse · room ${code}`,
+    text: "You're in a game room. Tap to return.",
+  });
 
 /**
  * Holds the current room session across the multiplayer screens. Nothing is stored:
@@ -49,6 +72,7 @@ export function MultiplayerProvider({ children }) {
       setName(displayName);
       setSession(next);
       rememberRoom({ code, pid, name: displayName });
+      keepRoomAlive(code);
       return next;
     },
     [connect, dictionary.repository, fragments, session, settings],
@@ -82,6 +106,7 @@ export function MultiplayerProvider({ children }) {
 
   const leaveRoom = useCallback(() => {
     session?.leave();
+    stopRoomKeepAlive();
     forgetRoom();
     setSession(null);
   }, [session]);
@@ -104,14 +129,39 @@ export function MultiplayerProvider({ children }) {
   // two (tabMemory) and keeps the seat; a tab that really closed drops out of presence and
   // counts as gone after MP_ABSENT_LEAVE_MS, and a vanished host is replaced by election.
 
-  // Back in the foreground: ask the host for the latest state.
+  // Background / foreground while in a room. On Android the keep-alive service holds the
+  // connection while the app is in the background (e.g. while the host shares the link) and
+  // stops itself after 10 minutes there; coming back restarts it if needed. Everywhere,
+  // coming back re-syncs with the room (or, for the host, re-announces it at once).
   useEffect(() => {
     if (!session) return undefined;
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') session.onForeground();
+      if (state === 'background') setRoomKeepAliveInBackground(true);
+      if (state !== 'active') return;
+      setRoomKeepAliveInBackground(false);
+      if (isKeepAliveSupported() && !isRoomKeepAliveRunning()) keepRoomAlive(session.code);
+      session.onForeground();
     });
     return () => sub.remove();
   }, [session]);
+
+  // Android: the app was swiped away while in a room. Leave properly (a host hands the room
+  // to the next player) so the others aren't left waiting; the service then stops.
+  const leaveRef = useRef(leaveRoom);
+  useEffect(() => {
+    leaveRef.current = leaveRoom;
+  }, [leaveRoom]);
+  useEffect(() => {
+    const removed = addRoomKeepAliveListener('onTaskRemoved', () => leaveRef.current());
+    // Too long in the background: the service stopped; end its task too. The player stays
+    // in the room and re-syncs when they come back.
+    const expired = addRoomKeepAliveListener('onExpired', () => stopRoomKeepAlive());
+    return () => {
+      removed.remove();
+      expired.remove();
+      stopRoomKeepAlive();
+    };
+  }, []);
 
   const value = useMemo(
     () => ({

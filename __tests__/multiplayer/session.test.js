@@ -395,6 +395,55 @@ describe('multiplayer room', () => {
     expect((await found).players.map((p) => p.name)).toEqual(['Ann', 'Ben']);
   });
 
+  it('a friend can still join a lone host whose app was in the background', async () => {
+    const { lookForRoom } = require('../../src/multiplayer/roomLookup');
+    const { net, time, sessions } = setup({ players: ['Ann'] });
+    const [host] = sessions;
+    // The host's app is in the background long enough for its connection to drop.
+    net.disconnect('p0');
+    time.advance(70000);
+    const updates = [];
+    lookForRoom({
+      probe: (code) =>
+        probeRoom({
+          connect: net.connect,
+          code,
+          pid: `probe${updates.length}`,
+          schedule: time.schedule,
+          timeoutMs: 4000,
+        }),
+      code: 'K7QD',
+      schedule: time.schedule,
+      now: time.now,
+      onUpdate: (u) => updates.push(u),
+      waitMs: 120000,
+      retryMs: 3000,
+    });
+    const step = async (ms) => {
+      for (let t = 0; t < ms; t += 500) {
+        time.advance(500);
+        for (let i = 0; i < 5; i += 1) await Promise.resolve();
+      }
+    };
+    await step(15000);
+    expect(updates.every((u) => u.state === 'waiting')).toBe(true);
+    // The host comes back to the app: it reconnects and re-announces the room.
+    net.reconnect('p0');
+    host.onForeground();
+    await step(10000);
+    const found = updates.find((u) => u.state === 'found');
+    expect(found.room.players.map((p) => p.name)).toEqual(['Ann']);
+  });
+
+  it('a host back from the background re-announces the room straight away', () => {
+    const { net, time, sessions } = setup({ players: ['Ann', 'Ben'] });
+    const before = net.messagesSent();
+    sessions[0].onForeground();
+    expect(net.messagesSent()).toBe(before + 1);
+    time.advance(100);
+    expect(sessions[1].getSnapshot().room.hostPid).toBe('p0');
+  });
+
   it('probing gives up when the channel never connects', async () => {
     const { time } = setup({ players: ['Ann'] });
     const silent = () => ({

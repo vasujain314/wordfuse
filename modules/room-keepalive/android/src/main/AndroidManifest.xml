@@ -1,0 +1,20 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Foreground service that keeps an open multiplayer room connected while the app is in the
+       background (for example while the host shares the invite link). Runs only while the
+       player is in a room. -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+  <!-- React Native's HeadlessJsTaskService holds a partial wake lock while its task runs. -->
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+  <application>
+    <service
+      android:name="expo.modules.roomkeepalive.RoomKeepAliveService"
+      android:exported="false"
+      android:foregroundServiceType="specialUse">
+      <property
+        android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+        android:value="Keeps the player's open multiplayer game room connected while they briefly leave the app, for example to share the invite link with friends. Runs only while the player is in a room and stops when they leave it, close the app, or after 10 minutes in the background." />
+    </service>
+  </application>
+</manifest>

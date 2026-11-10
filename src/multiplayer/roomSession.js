@@ -501,9 +501,15 @@ export class RoomSession {
     this.engine?.rematch(this.presence.map((m) => m.pid));
   }
 
-  /** Back in the foreground: ask for the latest state. */
+  /**
+   * Back in the foreground. A player asks for the latest state; a host re-announces the room
+   * straight away (its heartbeats may have paused while the app was in the background), and
+   * if someone else took over meanwhile, the usual epoch rules settle who hosts.
+   */
   onForeground() {
-    if (!this.engine && this.link) this.link.send(MessageType.sync, {});
+    if (!this.link || this.disposed) return;
+    if (this.engine) this.engine.broadcast();
+    else this.link.send(MessageType.sync, {});
   }
 
   /** Leaves the room. A leaving host hands the room to the next player first. */

@@ -88,3 +88,7 @@ export const ADS_RETRY_MS = 60000; // wait before loading again after a failed r
 // Multiplayer error alerts (emailed to the developer).
 export const MP_ALERT_MIN_GAP_MS = 30 * 60 * 1000; // same kind of error at most once per 30 min per device
 export const MP_ALERT_MAX_PER_SESSION = 3; // and at most 3 alerts per app session
+
+// Joining by link: a host whose app is in the background may not answer at once.
+export const MP_JOIN_WAIT_MS = 120000; // keep looking for the room this long before "no room found"
+export const MP_JOIN_RETRY_MS = 3000; // pause between lookups

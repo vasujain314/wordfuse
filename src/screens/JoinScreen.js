@@ -11,8 +11,14 @@ import { useApp } from '../context/AppContext';
 import { useMultiplayer } from '../context/MultiplayerContext';
 import { isNameTaken, sanitizeName } from '../multiplayer/names';
 import { RoomPhase } from '../multiplayer/protocol';
+import { lookForRoom } from '../multiplayer/roomLookup';
 import { isValidRoomCode, normalizeRoomCode } from '../multiplayer/roomCode';
 import { PageMeta } from '../components/PageMeta';
+
+const schedule = (fn, ms) => {
+  const handle = setTimeout(fn, ms);
+  return () => clearTimeout(handle);
+};
 
 /**
  * /join/[code]: where shared links land. Checks the room exists while the player types a
@@ -28,16 +34,18 @@ export function JoinScreen({ code: rawCode }) {
   const [lookup, setLookup] = useState({ state: 'checking', room: null });
   const validCode = isValidRoomCode(code);
 
+  // Bumped by "try again" to start a new lookup.
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (!available || !validCode) return undefined;
-    let active = true;
-    probe(code).then((room) => {
-      if (active) setLookup({ state: room ? 'found' : 'missing', room });
+    return lookForRoom({
+      probe,
+      code,
+      schedule,
+      now: Date.now,
+      onUpdate: ({ state, room = null }) => setLookup({ state, room }),
     });
-    return () => {
-      active = false;
-    };
-  }, [available, validCode, code, probe]);
+  }, [available, validCode, code, probe, attempt]);
 
   const room = lookup.room;
   const spectate =
@@ -63,6 +71,9 @@ export function JoinScreen({ code: rawCode }) {
   if (!available) info = 'online play is not set up in this build.';
   else if (!validCode) info = "that link doesn't contain a valid room code.";
   else if (lookup.state === 'checking') info = 'looking for the room…';
+  else if (lookup.state === 'waiting')
+    info =
+      'waiting for the room to answer… if the host has the game in the background, ask them to open it.';
   else if (lookup.state === 'missing')
     info = 'no room found. it may have ended, or the code is wrong.';
   else if (spectate) info = 'the game has started — you can watch until the next one.';
@@ -103,6 +114,17 @@ export function JoinScreen({ code: rawCode }) {
             disabled={!canJoin}
           />
           {dictionary.status !== 'ready' ? <Text style={styles.hint}>loading words…</Text> : null}
+          {lookup.state === 'missing' ? (
+            <Button
+              label="try again"
+              icon="refresh-cw"
+              variant="secondary"
+              onPress={() => {
+                setLookup({ state: 'checking', room: null });
+                setAttempt((n) => n + 1);
+              }}
+            />
+          ) : null}
           <Button label="home" variant="secondary" onPress={() => router.replace('/home')} />
         </View>
       </ScrollView>

@@ -123,6 +123,15 @@ Code: `src/ads/ads.native.js`, `src/ads/ads.web.js`, `src/components/AdBanner.*.
 - Add `ads.txt` (web) and `app-ads.txt` (apps) to `public/` with the line Google gives you (`google.com, pub-…, DIRECT, f08c47fec0942fa0`), and list `https://wordfuse.expo.app` as the developer website in both stores.
 - Store forms: Play Console → "Contains ads: yes" and Data safety (device or other ids, approximate location, app interactions, shared with Google for advertising); App Store → privacy labels for Identifiers/Usage data used for third-party advertising.
 
+## Rooms while the app is in the background
+
+The room is hosted on a player's device, so it has to survive that device leaving the app (e.g. to share the invite link).
+
+- **Android: keep-alive service** (`modules/room-keepalive`, a local Expo module). While the player is in a room, a foreground service runs a React Native Headless JS task; React Native keeps JavaScript timers running while such a task is active, so the room's heartbeats and the Supabase connection stay alive in the background. It stops when the player leaves the room, when the app is swiped away (the app first leaves the room properly, handing hosting over), or after 10 minutes in the background (then the room re-syncs when the player returns). Never restarted by the system. Timers run on display frames, so with the screen off they slow down; the layer below covers that.
+- **Everywhere: rooms survive a paused host.** A friend whose link finds nobody answering sees "waiting for the room…" and keeps looking for 2 minutes (`src/multiplayer/roomLookup.js`) instead of "no room found"; a host coming back re-announces the room at once, and a player who was dropped is seated again when they reconnect. iPhone browsers freeze background tabs, so this is the only mechanism there.
+- **Play Console:** the service uses the `specialUse` foreground-service type. Declare it under App content → Foreground service permissions, with the description from `modules/room-keepalive/android/src/main/AndroidManifest.xml` (keeps the player's open multiplayer room connected while they briefly leave the app, e.g. to share the invite link; runs only while in a room). Google may ask for a short video showing it.
+- **Notification:** Android requires an ongoing notification for the service. On Android 13+ it only shows in the notification shade if the app has the notification permission, which the app doesn't request yet; without it the service still runs and Android lists it under "Active apps".
+
 ## SEO and store listings
 
 - **Web:** `public/index.html` is the page template (title, description, keywords, canonical,
