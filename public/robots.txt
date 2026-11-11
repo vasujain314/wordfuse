@@ -17,5 +17,7 @@ Disallow: /join/
 Disallow: /room/
 Disallow: /game-over
 Disallow: /settings
+# Demo videos for store reviewers, not content.
+Disallow: /review/
 
 Sitemap: https://wordfuse.expo.app/sitemap.xml

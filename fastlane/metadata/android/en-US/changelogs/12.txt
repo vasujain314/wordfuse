@@ -1,0 +1,8 @@
+Welcome to Word Fuse, a fast word game with a typewriter look!
+
+• Get a few letters, type a real word that contains them before the fuse burns out
+• 2 lives, 10 seconds a word, and it gets harder as you score
+• Play with friends: host a room, share the link, up to 8 players take turns live
+• Friends can join from the app or any web browser
+• Missed one? See a word that would have worked
+• 168,000-word dictionary, no sign-up needed
